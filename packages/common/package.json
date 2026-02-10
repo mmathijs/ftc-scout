@@ -10,7 +10,10 @@
     },
     "dependencies": {
         "async-mutex": "^0.4.0",
-        "ml-matrix": "^6.10.4"
+        "graphql": "^16.7.1",
+        "graphql-scalars": "^1.22.2",
+        "ml-matrix": "^6.10.4",
+        "typeorm": "^0.3.16"
     },
     "devDependencies": {
         "typescript": "^5.1.3"
