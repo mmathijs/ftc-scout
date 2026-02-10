@@ -11,5 +11,8 @@
     "dependencies": {
         "async-mutex": "^0.4.0",
         "ml-matrix": "^6.10.4"
+    },
+    "devDependencies": {
+        "typescript": "^5.1.3"
     }
 }
