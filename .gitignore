@@ -10,3 +10,6 @@ packages/*/dist/
 !.env.example
 db.sql
 /compose
+
+# Benchmark results
+benchmark-results-*.json
