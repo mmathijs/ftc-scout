@@ -20,6 +20,8 @@ import { useServer } from "graphql-ws/lib/use/ws";
 import { ApolloServerPluginDrainHttpServer } from "@apollo/server/plugin/drainHttpServer";
 import { setupSiteMap } from "./sitemap/setupSitemap";
 import { InMemoryLRUCache } from "@apollo/utils.keyvaluecache";
+import { performancePlugin } from "./graphql/plugins/performance-plugin";
+import { setupMonitoringDashboard } from "./monitoring/dashboard";
 
 async function main() {
     await DATA_SOURCE.initialize();
@@ -55,6 +57,7 @@ async function main() {
         }),
         plugins: [
             ApolloServerPluginDrainHttpServer({ httpServer }),
+            performancePlugin,
             {
                 async serverWillStart() {
                     return {
@@ -75,6 +78,7 @@ async function main() {
 
     setupRest(app);
     setupSiteMap(app);
+    setupMonitoringDashboard(app);
 
     setupBannerRoutes(app);
 

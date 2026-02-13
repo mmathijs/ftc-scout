@@ -8,7 +8,9 @@
         "build": "tsc",
         "start": "node dist/index.js",
         "dev": "nodemon dist/index.js -w dist -w ../common/dist",
-        "check": "tsc --noEmit"
+        "check": "tsc --noEmit",
+        "benchmark": "cd ../../benchmark && npx ts-node load-test.ts",
+        "benchmark:compare": "cd ../../benchmark && npx ts-node compare.ts"
     },
     "dependencies": {
         "@apollo/server": "^4.7.5",
