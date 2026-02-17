@@ -40,8 +40,8 @@
 <div class="app">
     <div class="beta-warning">
         <p>
-            This is a beta release of FTCScout, run bij mmathijs. If you encounter any issues or
-            data discrepancies, please report them on
+            This is an <strong>unofficial</strong> beta release of FTCScout. Report
+            advancement/leagues bugs on
             <a
                 href="https://github.com/mmathijs/ftc-scout"
                 target="_blank"
@@ -52,7 +52,11 @@
                 href="https://discordapp.com/users/595972406745628703"
                 target="_blank"
                 rel="noopener noreferrer">Discord</a
-            >.
+            >. <!--<br>Official GitHub repository: <a
+            href="https://github.com/ftc-scout/ftc-scout"
+            target="_blank"
+            rel="noopener noreferrer">
+            can be found here</a>.-->
         </p>
     </div>
     <div id="content" tabindex="-1" autofocus>
