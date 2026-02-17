@@ -43,7 +43,7 @@
             This is a beta release of FTCScout, run bij mmathijs. If you encounter any issues,
             please report them on
             <a
-                href="https:// github.com/mmathijs/ftc-scout"
+                href="https://github.com/mmathijs/ftc-scout"
                 target="_blank"
                 rel="noopener noreferrer">GitHub</a
             >
