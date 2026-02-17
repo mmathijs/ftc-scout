@@ -53,11 +53,7 @@
                 href="https://discordapp.com/users/595972406745628703"
                 target="_blank"
                 rel="noopener noreferrer">Discord</a
-            >. <!--<br>Official GitHub repository: <a
-            href="https://github.com/ftc-scout/ftc-scout"
-            target="_blank"
-            rel="noopener noreferrer">
-            can be found here</a>.-->
+            >.
         </p>
     </div>
     <div id="content" tabindex="-1" autofocus>
