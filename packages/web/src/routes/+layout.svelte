@@ -40,8 +40,8 @@
 <div class="app">
     <div class="beta-warning">
         <p>
-            This is a beta release of FTCScout, run bij mmathijs. If you encounter any issues,
-            please report them on
+            This is a beta release of FTCScout, run bij mmathijs. If you encounter any issues or
+            data discrepancies, please report them on
             <a
                 href="https://github.com/mmathijs/ftc-scout"
                 target="_blank"
