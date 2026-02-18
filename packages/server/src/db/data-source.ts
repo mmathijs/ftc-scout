@@ -5,7 +5,7 @@ import { SnakeNamingStrategy } from "typeorm-naming-strategies";
 
 export const DATA_SOURCE = new DataSource({
     type: "postgres",
-    url: DATABASE_URL,
+    url: DATABASE_URL ?? "",
     synchronize: SYNC_DB,
     logging: LOGGING,
     entities: ENTITIES,
