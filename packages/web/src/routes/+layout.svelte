@@ -40,8 +40,9 @@
 <div class="app">
     <div class="beta-warning">
         <p>
-            This is an <strong>unofficial</strong> beta release of FTCScout. Report
-            advancement/leagues bugs on
+            This is an <strong>unofficial</strong> beta release of
+            <a href="https://ftcscout.org" target="_blank" rel="noopener noreferrer">FTC Scout</a>
+            . Report advancement/leagues bugs on
             <a
                 href="https://github.com/mmathijs/ftc-scout"
                 target="_blank"
