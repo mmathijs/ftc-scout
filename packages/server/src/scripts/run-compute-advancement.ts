@@ -13,7 +13,7 @@ import { computeAdvancementForEvent } from "../db/loaders/compute-advancement";
 import { AwardFtcApi, notEmpty, Season } from "@ftc-scout/common";
 import { getEventAwards } from "../ftc-api/get-event-awards";
 import { Award } from "../db/entities/Award";
-import { getAdvancement } from "../ftc-api/get-advancement";
+import { getAdvancementSlots } from "../ftc-api/get-advancement-slots";
 
 async function main() {
     const args = process.argv.slice(2);
@@ -56,13 +56,13 @@ async function main() {
             .map((a) => Award.fromApi(season, a))
             .filter(notEmpty);
         await Award.save(dbAwards, { chunk: 100 });
-        let adv = await getAdvancement(season, event.code);
-        if (!adv || adv.slots == null) {
+        let adv = await getAdvancementSlots(season, event.code);
+        if (!adv || adv.advancementSlots == null) {
             console.info(`No advancement info for ${event.code}`);
         } else {
             let dirty = false;
-            if (event.advancementSlots !== adv.slots) {
-                event.advancementSlots = adv.slots;
+            if (event.advancementSlots !== adv.advancementSlots) {
+                event.advancementSlots = adv.advancementSlots;
                 dirty = true;
             }
             if (adv.advancesTo && event.advancesTo !== adv.advancesTo) {
@@ -76,7 +76,7 @@ async function main() {
             if (dirty) {
                 await event.save();
                 console.info(
-                    `Updated advancement info for ${event.code} -> slots=${adv.slots}, advancesTo=${adv.advancesTo}, fcmpReserved=${adv.fcmpReserved}`
+                    `Updated advancement info for ${event.code} -> slots=${adv.advancementSlots}, advancesTo=${adv.advancesTo}, fcmpReserved=${adv.fcmpReserved}`
                 );
             }
         }
