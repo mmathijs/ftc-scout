@@ -9,6 +9,10 @@ import {
     isEligible,
     FrontendMatch,
     DESCRIPTORS,
+    calculateTiebreakersFromScores,
+    computeRankingPoints,
+    determineWinner,
+    hasAllianceScores,
 } from "@ftc-scout/common";
 import { ADVANCEMENT_CONFIGS } from "@ftc-scout/common";
 import { AdvancementScore } from "../entities/AdvancementScore";
@@ -23,7 +27,6 @@ import { TeamMatchParticipation } from "../entities/TeamMatchParticipation";
 import { MatchScore, MatchScoreSchemas } from "../entities/dyn/match-score";
 import { Team } from "../entities/Team";
 import { In, IsNull } from "typeorm";
-import { computeRankingPoints, getWinningAlliance } from "./recompute-league-rankings";
 
 const SUPPORTED_EVENT_TYPES: EventType[] = [
     EventType.Qualifier,
@@ -261,6 +264,7 @@ async function loadEligibilityData(
 }
 
 function applyEligibilityToRows(
+    advancementConfig: AdvancementPointsConfig,
     event: Event,
     teamRegionMap: Map<number, string | null>,
     qualEventCounts: Map<number, number>,
@@ -272,7 +276,8 @@ function applyEligibilityToRows(
             event.regionCode == null ||
             !teamRegionMap.has(r.teamNumber) ||
             teamRegionMap.get(r.teamNumber) === event.regionCode;
-        let playedCountOk = (qualEventCounts.get(r.teamNumber) ?? 0) < 3;
+        let playedCountOk =
+            (qualEventCounts.get(r.teamNumber) ?? 0) < advancementConfig.maxQualEvents;
         let notPreviouslyAdvanced = !previouslyAdvanced.has(r.teamNumber);
 
         r.eligibility = getAdvancementEligibility(regionOk, playedCountOk, notPreviouslyAdvanced);
@@ -720,7 +725,11 @@ function calculateScoresPerTeam(
                 blue: blueScore,
             },
         } as FrontendMatch;
-        let winningAlliance = getWinningAlliance(frontendMatch);
+
+        let winningAlliance: Alliance | null = null;
+        if (hasAllianceScores(frontendMatch.scores)) {
+            winningAlliance = determineWinner(frontendMatch.scores.red, frontendMatch.scores.blue);
+        }
 
         doubleScores.forEach((s) => {
             let alliance = s.alliance;
@@ -734,28 +743,16 @@ function calculateScoresPerTeam(
                 let dq = team.dq ?? false;
                 if (team.surrogate) return;
 
-                let tb1 = 0;
-                let tb2 = 0;
-
-                switch (descriptor.rankings.tb) {
-                    case "AutoEndgameTot":
-                    case "AutoEndgameAvg":
-                        tb1 = s.autoPoints ?? 0;
-                        tb2 = s.egPoints ?? 0;
-                        break;
-                    case "AutoAscentAvg":
-                        tb1 = s.autoPoints ?? 0;
-                        tb2 = s.ascentPoints ?? 0;
-                        break;
-                    case "AvgNpBase":
-                        tb1 = s.totalPointsNp ?? 0;
-                        tb2 = s.dcBasePoints ?? 0;
-                        break;
-                }
+                let { tb1, tb2 } = calculateTiebreakersFromScores(descriptor, s);
 
                 let rp = dq
                     ? 0
-                    : (computeRankingPoints(descriptor, team, s, winningAlliance) as number);
+                    : (computeRankingPoints(
+                          descriptor,
+                          team.alliance,
+                          s,
+                          winningAlliance
+                      ) as number);
 
                 if (!matchScoresPerTeam.has(teamNumber)) {
                     matchScoresPerTeam.set(teamNumber, []);
@@ -1073,7 +1070,14 @@ export async function computeAdvancementForEvent(season: Season, eventCode: stri
             });
         }
 
-        applyEligibilityToRows(event, teamRegionMap, qualEventCounts, previouslyAdvanced, rows);
+        applyEligibilityToRows(
+            config,
+            event,
+            teamRegionMap,
+            qualEventCounts,
+            previouslyAdvanced,
+            rows
+        );
         sortRowsByTiebreak(rows, config);
         assignAdvancedSlots(event, rows);
         finalizeRowRanks(rows);
@@ -1288,7 +1292,7 @@ export async function computeAdvancementForEvent(season: Season, eventCode: stri
         });
     }
 
-    applyEligibilityToRows(event, teamRegionMap, qualEventCounts, previouslyAdvanced, rows);
+    applyEligibilityToRows(config, event, teamRegionMap, qualEventCounts, previouslyAdvanced, rows);
     sortRowsByTiebreak(rows, config);
     assignAdvancedSlots(event, rows);
     finalizeRowRanks(rows);
