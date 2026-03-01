@@ -42,3 +42,15 @@ export function sendAnalyticsRequest(navigate: AfterNavigate) {
         lastRest = rest;
     }
 }
+
+export function trackEventView(season: string | number, eventCode: string, pageType: string) {
+    if (browser && window.plausible) {
+        window.plausible("Event Page View", {
+            props: {
+                season: season + "",
+                event_code: eventCode,
+                page_type: pageType,
+            },
+        });
+    }
+}

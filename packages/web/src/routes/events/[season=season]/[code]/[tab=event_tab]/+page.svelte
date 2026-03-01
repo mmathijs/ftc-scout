@@ -50,6 +50,7 @@
         EventPageDocument,
         type EventPageQuery,
     } from "../../../../../lib/graphql/generated/graphql-operations";
+    import { trackEventView } from "../../../../analytics";
 
     export let data;
 
@@ -186,6 +187,7 @@
 
     $: if (event && !event.remote) watchEvent(event, refresh);
     onMount(() => {
+        trackEventView(season.toString(), event?.code ?? "unknown", selectedTab);
         return unsubscribe;
     });
 

@@ -7,6 +7,15 @@ declare global {
         // interface PageData {}
         // interface Platform {}
     }
+    interface Window {
+        plausible?: (
+            event: string,
+            options?: {
+                props?: Record<string, string>;
+                callback?: () => void;
+            }
+        ) => void;
+    }
 }
 
 export {};
