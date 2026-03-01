@@ -9,10 +9,12 @@
 		<div style="display: contents">%sveltekit.body%</div>
 	</body>
 	<!-- Privacy-friendly analytics by Plausible -->
-	<script async src="https://plausible.mmathijs.nl/js/pa-zB9UVpO2VdepYwJnmZxGE.js"></script>
+	<script async src="/js/script.js"></script>
 	<script>
 		window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};
-		plausible.init()
+		plausible.init({
+			endpoint: "/api/event"
+		})
 	</script>
 
 </html>
