@@ -194,7 +194,6 @@
         event &&
         !(selectedTab === "matches" && (event?.matches?.length ?? 0) == 0)
     ) {
-        console.log("Tracking event view", season.toString(), event.code ?? "unknown", selectedTab);
         trackEventView(season.toString(), event.code ?? "unknown", selectedTab);
     }
 
