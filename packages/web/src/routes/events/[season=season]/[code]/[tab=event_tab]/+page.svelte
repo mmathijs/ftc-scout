@@ -187,11 +187,15 @@
 
     $: if (event && !event.remote) watchEvent(event, refresh);
 
-    let _hasTrackedEvent = false;
+    let _selectedTabForTracking = "";
 
-    $: if (event && !_hasTrackedEvent) {
+    $: if (
+        selectedTab !== _selectedTabForTracking &&
+        event &&
+        !(selectedTab === "matches" && (event?.matches?.length ?? 0) == 0)
+    ) {
+        console.log("Tracking event view", season.toString(), event.code ?? "unknown", selectedTab);
         trackEventView(season.toString(), event.code ?? "unknown", selectedTab);
-        _hasTrackedEvent = true;
     }
 
     onMount(() => {
