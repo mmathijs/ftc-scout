@@ -54,3 +54,14 @@ export function trackEventView(season: string | number, eventCode: string, pageT
         });
     }
 }
+
+export function trackTeamView(teamNumber: string | number, season: string | number) {
+    if (browser && window.plausible) {
+        window.plausible("Team Page View", {
+            props: {
+                team: teamNumber + "",
+                season: season + "",
+            },
+        });
+    }
+}

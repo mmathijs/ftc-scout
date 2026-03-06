@@ -38,6 +38,7 @@
     import { setContext } from "svelte";
     import { SHOW_REMOTE_FOCUS_CTX } from "$lib/components/matches/MatchTeam.svelte";
     import QuickStats from "./QuickStats.svelte";
+    import { trackTeamView } from "../../analytics";
 
     const toSeason = (n: number) => n as Season;
 
@@ -58,6 +59,10 @@
     });
 
     setContext(SHOW_REMOTE_FOCUS_CTX, false);
+
+    $: if (team) {
+        trackTeamView($season.toString(), team.number);
+    }
 </script>
 
 <Head
