@@ -186,8 +186,15 @@
     setContext(TEAM_CLICK_ACTION_CTX, (t: number) => (focusedTeam = focusedTeam == t ? null : t));
 
     $: if (event && !event.remote) watchEvent(event, refresh);
+
+    let _hasTrackedEvent = false;
+
+    $: if (event && !_hasTrackedEvent) {
+        trackEventView(season.toString(), event.code ?? "unknown", selectedTab);
+        _hasTrackedEvent = true;
+    }
+
     onMount(() => {
-        trackEventView(season.toString(), event?.code ?? "unknown", selectedTab);
         return unsubscribe;
     });
 
