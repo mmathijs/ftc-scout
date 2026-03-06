@@ -61,7 +61,7 @@
     setContext(SHOW_REMOTE_FOCUS_CTX, false);
 
     $: if (team) {
-        trackTeamView($season.toString(), team.number);
+        trackTeamView(team.number, $season.toString());
     }
 </script>
 
