@@ -24,7 +24,6 @@ export const handle: Handle = async ({ event, resolve }) => {
 
     try {
         const result = await lookup(ip);
-        console.log("geo lookup result", result);
 
         if (result) {
             geo = {
@@ -36,11 +35,8 @@ export const handle: Handle = async ({ event, resolve }) => {
                 latitude: result.latitude ?? 0,
                 longitude: result.longitude ?? 0,
             };
-            console.log("Parsed geo object:", geo);
         }
-    } catch (err) {
-        console.error("geo lookup failed", err);
-    }
+    } catch (err) {}
 
     event.locals.geo = geo || {
         country: "",
@@ -51,8 +47,6 @@ export const handle: Handle = async ({ event, resolve }) => {
         latitude: 0,
         longitude: 0,
     };
-
-    console.log("event.locals.geo set to:", event.locals.geo);
 
     let response = await resolve(event, {
         filterSerializedResponseHeaders: (name) => ["content-type"].indexOf(name) != -1,
