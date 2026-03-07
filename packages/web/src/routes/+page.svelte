@@ -12,9 +12,24 @@
     import { createTippy } from "svelte-tippy";
     import { tippyTheme } from "$lib/components/nav/DarkModeToggle.svelte";
     import Sponsor from "$lib/components/nav/Sponsor.svelte";
+    import { browser } from "$app/environment";
+    import type { HomePageQuery } from "$lib/graphql/generated/graphql-operations";
+    import type { ApolloQueryResult } from "@apollo/client";
+    import type { Readable } from "svelte/store";
     // import AlertBar from "$lib/components/nav/AlertBar.svelte";
 
-    export let data;
+    export let data: {
+        home: Readable<ApolloQueryResult<HomePageQuery>>;
+        geo?: {
+            country: string;
+            timezone: string;
+            region: string;
+            region_name?: string;
+            city: string;
+            latitude: number;
+            longitude: number;
+        };
+    };
     $: homeStore = data.home;
 
     $: activeTeamsCount = $homeStore?.data?.activeTeamsCount;
@@ -25,6 +40,95 @@
 
     let tippy = createTippy({});
     $: np = DESCRIPTORS[CURRENT_SEASON].pensSubtract ? "" : "no penalty ";
+
+    function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+        const R = 6371; // Earth's radius in km
+
+        const dLat = ((lat2 - lat1) * Math.PI) / 180;
+        const dLon = ((lon2 - lon1) * Math.PI) / 180;
+        const a =
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos((lat1 * Math.PI) / 180) *
+                Math.cos((lat2 * Math.PI) / 180) *
+                Math.sin(dLon / 2) *
+                Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+    }
+
+    $: nearbyEvents =
+        data.geo && events
+            ? (() => {
+                  const userCity = data.geo!.city.toLowerCase();
+                  const userRegion = data.geo!.region.toLowerCase();
+                  const userCountry = data.geo!.country.toLowerCase();
+                  const userLat = data.geo!.latitude;
+                  const userLon = data.geo!.longitude;
+
+                  const cityMatches = events.filter(
+                      (e: any) => e.location.city.toLowerCase() === userCity
+                  );
+
+                  if (cityMatches.length > 0) {
+                      return cityMatches.slice(0, 5);
+                  }
+
+                  const regionMatches = events.filter(
+                      (e: any) =>
+                          (e.location.state.toLowerCase().includes(userRegion.toLowerCase()) ||
+                              userRegion.toLowerCase().includes(e.location.state.toLowerCase())) &&
+                          e.location.country.toLowerCase() === userCountry
+                  );
+
+                  if (regionMatches.length > 0) {
+                      return regionMatches
+                          .map((e: any) => ({
+                              event: e,
+                              distance:
+                                  e.location.latitude && e.location.longitude
+                                      ? calculateDistance(
+                                            userLat,
+                                            userLon,
+                                            e.location.latitude,
+                                            e.location.longitude
+                                        )
+                                      : 999999,
+                          }))
+                          .sort((a, b) => a.distance - b.distance)
+                          .slice(0, 5)
+                          .map((item) => item.event);
+                  }
+
+                  // If no city or region matches, show all events sorted by distance
+                  return events
+                      .map((e: any) => ({
+                          event: e,
+                          distance:
+                              e.location.latitude && e.location.longitude
+                                  ? calculateDistance(
+                                        userLat,
+                                        userLon,
+                                        e.location.latitude,
+                                        e.location.longitude
+                                    )
+                                  : 999999,
+                      }))
+                      .sort((a, b) => a.distance - b.distance)
+                      .filter((item) => item.distance < 2000) // Filter out events that are extremely far away (e.g., in another continent)
+                      .slice(0, 5)
+                      .map((item) => {
+                          return item.event;
+                      });
+              })()
+            : null;
+
+    $: if (browser) {
+        if (data.geo) {
+            try {
+                localStorage.setItem("ftcscout_geo", JSON.stringify(data.geo));
+            } catch (e) {}
+        }
+    }
 </script>
 
 <Head title="FTCScout" />
@@ -53,6 +157,33 @@
                 <p class="name">Matches Played</p>
             </a>
         </div>
+
+        {#if nearbyEvents && nearbyEvents.length > 0}
+            <div class="events nearby-events">
+                <div class="head">
+                    <h2>Events Near You</h2>
+                    {#if data.geo}
+                        <p>
+                            {data.geo.city}, {data.geo.region_name ?? data.geo.region}, {data.geo
+                                .country}
+                        </p>
+                    {/if}
+                </div>
+
+                <hr />
+
+                <ul>
+                    {#each nearbyEvents as e}
+                        <li>
+                            <a href="/events/{e.season}/{e.code}/matches">
+                                <span>{e.name}</span>
+                                <em class="loc"><Location {...e.location} link={false} /></em>
+                            </a>
+                        </li>
+                    {/each}
+                </ul>
+            </div>
+        {/if}
 
         <div class="events">
             <div class="head">
@@ -211,6 +342,11 @@
         background: var(--fg-color);
 
         margin-bottom: var(--vl-gap);
+    }
+
+    .nearby-events {
+        border-color: var(--theme-color);
+        border-width: 2px;
     }
 
     .events .head {

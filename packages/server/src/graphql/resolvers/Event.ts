@@ -72,7 +72,16 @@ export const EventGQL: GraphQLObjectType = new GraphQLObjectType({
         location: {
             type: nn(LocationGQL),
             resolve: (e) =>
-                !!e ? { venue: e.venue, city: e.city, state: e.state, country: e.country } : null,
+                !!e
+                    ? {
+                          venue: e.venue,
+                          city: e.city,
+                          state: e.state,
+                          country: e.country,
+                          latitude: e.latitude,
+                          longitude: e.longitude,
+                      }
+                    : null,
         },
         website: nullTy(StrTy),
         liveStreamURL: nullTy(StrTy),

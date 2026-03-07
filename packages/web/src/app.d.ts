@@ -3,8 +3,27 @@
 declare global {
     namespace App {
         // interface Error {}
-        // interface Locals {}
-        // interface PageData {}
+        interface Locals {
+            geo?: {
+                country: string;
+                timezone: string;
+                region: string;
+                region_name: string;
+                city: string;
+                latitude: number;
+                longitude: number;
+            };
+        }
+        interface PageData {
+            geo?: {
+                country: string;
+                timezone: string;
+                region: string;
+                city: string;
+                latitude: number;
+                longitude: number;
+            };
+        }
         // interface Platform {}
     }
     interface Window {

@@ -67,6 +67,12 @@ export class Event extends BaseEntity {
     @Column()
     city!: string;
 
+    @Column({ type: "float", nullable: true })
+    latitude!: number | null;
+
+    @Column({ type: "float", nullable: true })
+    longitude!: number | null;
+
     @Column({ type: "varchar", nullable: true })
     website!: string | null;
 
@@ -209,6 +215,8 @@ export class Event extends BaseEntity {
             country: api.country,
             state: api.stateprov,
             city: api.city,
+            latitude: api.coordinates?.coordinates[1] ?? null,
+            longitude: api.coordinates?.coordinates[0] ?? null,
             website: api.website ? api.website.trim() : null,
             liveStreamURL:
                 api.liveStreamUrl && api.liveStreamUrl.startsWith("https://")
@@ -222,3 +230,5 @@ export class Event extends BaseEntity {
         } satisfies DeepPartial<Event>);
     }
 }
+
+export default Event;
