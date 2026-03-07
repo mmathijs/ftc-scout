@@ -1,6 +1,6 @@
 import type { Handle } from "@sveltejs/kit";
 import { THEME_COOKIE_NAME } from "./lib/constants";
-import { lookup } from "ip-location-api";
+// import { lookup } from "ip-location-api";
 
 export const handle: Handle = async ({ event, resolve }) => {
     let theme = "system";
@@ -20,8 +20,17 @@ export const handle: Handle = async ({ event, resolve }) => {
         city: string;
         latitude: number;
         longitude: number;
-    } | null = null;
+    } = {
+        country: "",
+        timezone: "",
+        region: "",
+        region_name: "",
+        city: "",
+        latitude: 0,
+        longitude: 0,
+    };
 
+    /*
     try {
         const result = await lookup(ip);
 
@@ -37,16 +46,11 @@ export const handle: Handle = async ({ event, resolve }) => {
             };
         }
     } catch (err) {}
+*/
 
-    event.locals.geo = geo || {
-        country: "",
-        timezone: "",
-        region: "",
-        region_name: "",
-        city: "",
-        latitude: 0,
-        longitude: 0,
-    };
+    console.log(`IP: ${ip}, Geo: ${JSON.stringify(geo)}`);
+
+    event.locals.geo = geo;
 
     let response = await resolve(event, {
         filterSerializedResponseHeaders: (name) => ["content-type"].indexOf(name) != -1,

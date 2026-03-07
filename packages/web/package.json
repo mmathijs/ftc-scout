@@ -40,6 +40,7 @@
         "@threlte/extras": "^5.4.0",
         "export-to-csv": "^0.2.1",
         "graphql": "^16.7.1",
+        "ip-location-api": "^4.0.4",
         "svelte-fa": "^3.0.4",
         "svelte-infinite-scroll": "^2.0.1",
         "svelte-local-storage-store": "^0.5.0",
