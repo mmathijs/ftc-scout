@@ -161,7 +161,7 @@
         {#if nearbyEvents && nearbyEvents.length > 0}
             <div class="events nearby-events">
                 <div class="head">
-                    <h2>Events Near You</h2>
+                    <h2>Events Near You (No ip-lookup yet, placeholder location)</h2>
                     {#if data.geo}
                         <p>
                             {data.geo.city}, {data.geo.region_name ?? data.geo.region}, {data.geo

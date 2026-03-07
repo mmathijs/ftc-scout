@@ -21,13 +21,13 @@ export const handle: Handle = async ({ event, resolve }) => {
         latitude: number;
         longitude: number;
     } = {
-        country: "",
-        timezone: "",
-        region: "",
-        region_name: "",
-        city: "",
-        latitude: 0,
-        longitude: 0,
+        country: "DE",
+        timezone: "Europe/Berlin",
+        region: "BY",
+        region_name: "Bavaria",
+        city: "Nuremberg",
+        latitude: 49.4527,
+        longitude: 11.0783,
     };
 
     /*
