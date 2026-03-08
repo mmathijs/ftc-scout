@@ -31,8 +31,8 @@ export const handle: Handle = async ({ event, resolve }) => {
         return {
             country: first("cf-ipcountry", "cf-country", "x-geo-country") ?? "",
             timezone: first("cf-timezone", "x-geo-timezone", "x-client-timezone") ?? "",
-            region: first("cf-region", "cf-ipregion", "x-geo-region") ?? "",
-            region_name: first("cf-region-name", "x-geo-region-name") ?? "",
+            region: first("cf-region-code", "cf-ipregion", "x-geo-region") ?? "",
+            region_name: first("cf-region", "x-geo-region-name") ?? "",
             city: first("cf-city", "cf-ipcity", "x-geo-city") ?? "",
             latitude: parseFloatOrNull(
                 first("cf-latitude", "cf-client-geo-latitude", "x-geo-latitude")
