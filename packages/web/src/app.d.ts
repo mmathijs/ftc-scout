@@ -10,8 +10,8 @@ declare global {
                 region: string;
                 region_name: string;
                 city: string;
-                latitude: number;
-                longitude: number;
+                latitude: number | null;
+                longitude: number | null;
             };
         }
         interface PageData {
@@ -20,8 +20,8 @@ declare global {
                 timezone: string;
                 region: string;
                 city: string;
-                latitude: number;
-                longitude: number;
+                latitude: number | null;
+                longitude: number | null;
             };
         }
         // interface Platform {}

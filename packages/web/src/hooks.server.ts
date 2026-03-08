@@ -1,6 +1,5 @@
 import type { Handle } from "@sveltejs/kit";
-import { THEME_COOKIE_NAME } from "./lib/constants";
-// import { lookup } from "ip-location-api";
+import { THEME_COOKIE_NAME } from "$lib/constants";
 
 export const handle: Handle = async ({ event, resolve }) => {
     let theme = "system";
@@ -18,35 +17,31 @@ export const handle: Handle = async ({ event, resolve }) => {
         region: string;
         region_name: string;
         city: string;
-        latitude: number;
-        longitude: number;
-    } = {
-        country: "DE",
-        timezone: "Europe/Berlin",
-        region: "BY",
-        region_name: "Bavaria",
-        city: "Nuremberg",
-        latitude: 49.4527,
-        longitude: 11.0783,
-    };
+        latitude: number | null;
+        longitude: number | null;
+    } = (() => {
+        const headers = event.request.headers;
+        const first = (...names: string[]) =>
+            names.map((n) => headers.get(n)).find((v) => v !== null && v !== undefined && v !== "");
+        const parseFloatOrNull = (val: string | null | undefined) => {
+            const n = val ? Number.parseFloat(val) : NaN;
+            return Number.isFinite(n) ? n : null;
+        };
 
-    /*
-    try {
-        const result = await lookup(ip);
-
-        if (result) {
-            geo = {
-                country: result.country ?? "",
-                timezone: result.timezone ?? "",
-                region: result.region1 ?? "",
-                region_name: result.region1_name ?? "",
-                city: result.city ?? "",
-                latitude: result.latitude ?? 0,
-                longitude: result.longitude ?? 0,
-            };
-        }
-    } catch (err) {}
-*/
+        return {
+            country: first("cf-ipcountry", "cf-country", "x-geo-country") ?? "",
+            timezone: first("cf-timezone", "x-geo-timezone", "x-client-timezone") ?? "",
+            region: first("cf-region", "cf-ipregion", "x-geo-region") ?? "",
+            region_name: first("cf-region-name", "x-geo-region-name") ?? "",
+            city: first("cf-city", "cf-ipcity", "x-geo-city") ?? "",
+            latitude: parseFloatOrNull(
+                first("cf-latitude", "cf-client-geo-latitude", "x-geo-latitude")
+            ),
+            longitude: parseFloatOrNull(
+                first("cf-longitude", "cf-client-geo-longitude", "x-geo-longitude")
+            ),
+        };
+    })();
 
     console.log(`IP: ${ip}, Geo: ${JSON.stringify(geo)}`);
 
@@ -62,8 +57,9 @@ export const handle: Handle = async ({ event, resolve }) => {
         response.headers.set("x-geo-country", geo.country);
         response.headers.set("x-geo-region", geo.region);
         response.headers.set("x-geo-city", geo.city);
-        response.headers.set("x-geo-latitude", geo.latitude.toString());
-        response.headers.set("x-geo-longitude", geo.longitude.toString());
+        if (geo.latitude !== null) response.headers.set("x-geo-latitude", geo.latitude.toString());
+        if (geo.longitude !== null)
+            response.headers.set("x-geo-longitude", geo.longitude.toString());
     }
 
     return response;
