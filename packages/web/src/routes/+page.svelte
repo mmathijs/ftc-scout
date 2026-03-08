@@ -100,25 +100,27 @@
                   }
 
                   // If no city or region matches, show all events sorted by distance
-                  return events
-                      .map((e: any) => ({
-                          event: e,
-                          distance:
-                              e.location.latitude && e.location.longitude
-                                  ? calculateDistance(
-                                        userLat,
-                                        userLon,
-                                        e.location.latitude,
-                                        e.location.longitude
-                                    )
-                                  : 999999,
-                      }))
-                      .sort((a, b) => a.distance - b.distance)
-                      .filter((item) => item.distance < 2000) // Filter out events that are extremely far away (e.g., in another continent)
-                      .slice(0, 5)
-                      .map((item) => {
-                          return item.event;
-                      });
+                  return (
+                      events
+                          .map((e: any) => ({
+                              event: e,
+                              distance:
+                                  e.location.latitude && e.location.longitude
+                                      ? calculateDistance(
+                                            userLat,
+                                            userLon,
+                                            e.location.latitude,
+                                            e.location.longitude
+                                        )
+                                      : 999999,
+                          }))
+                          .sort((a, b) => a.distance - b.distance)
+                          // .filter((item) => item.distance < 2000) // Filter out events that are extremely far away (e.g., in another continent)
+                          .slice(0, 5)
+                          .map((item) => {
+                              return item.event;
+                          })
+                  );
               })()
             : null;
 
@@ -161,7 +163,7 @@
         {#if nearbyEvents && nearbyEvents.length > 0}
             <div class="events nearby-events">
                 <div class="head">
-                    <h2>Events Near You (No ip-lookup yet, placeholder location)</h2>
+                    <h2>Events Near You</h2>
                     {#if data.geo}
                         <p>
                             {data.geo.city}, {data.geo.region_name ?? data.geo.region}, {data.geo
