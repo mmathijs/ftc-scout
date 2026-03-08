@@ -4,7 +4,7 @@
 
     export let title: string;
     export let description: string =
-        "FTCScout is a new way to track and scout FIRST Tech Challenge, providing advanced statistics and data on all aspects of FTC.";
+        "This is an unofficial BETA version FTCScout.org. This beta version includes: Advancement and leagues data and qol features. Report bugs on GitHub or Discord.";
     export let image = "/head/banner.png";
     export let url: string | null = null;
 </script>
