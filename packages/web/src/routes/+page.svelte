@@ -131,7 +131,7 @@
     }
 </script>
 
-<Head title="FTCScout" />
+<Head title="BETA FTCScout | Advancement + Leagues + QOL features | May be unstable" />
 
 <!-- <AlertBar
     message="Welcome to the FTC World Championships! We're doing our best to keep the site online, but the championships bring extremely large traffic flows to the website. You can check the website status with the arrow to the right..."
