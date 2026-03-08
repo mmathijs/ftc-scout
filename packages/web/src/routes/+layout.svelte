@@ -74,8 +74,8 @@
 
         /*margin-top: var(--navbar-size);*/
         margin-left: var(--sidebar-size);
-        padding-bottom: 80px;
         padding: var(--md-pad);
+        padding-bottom: 80px;
 
         overflow: auto;
     }
