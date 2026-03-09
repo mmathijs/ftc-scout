@@ -165,7 +165,7 @@ async function getFtcScoutAdvancement(
                     totalPoints
                     rank
                     advanced
-                    isAdvancementEligible
+                    eligibility 
                 }
             }
         }
@@ -183,6 +183,7 @@ async function getFtcScoutAdvancement(
     });
 
     if (!response.ok) {
+        console.log(await response.text());
         throw new Error(`GraphQL request failed: ${response.statusText}`);
     }
 
