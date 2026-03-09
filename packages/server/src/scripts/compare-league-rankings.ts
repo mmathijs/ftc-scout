@@ -152,6 +152,17 @@ query GetLeagueRankings($season: Int!, $code: String!) {
                       dqs
                       qualMatchesPlayed
                   }
+                 ... on TeamEventStats2024 {
+                      rank
+                      rp
+                      tb1
+                      tb2
+                      wins
+                      losses
+                      ties
+                      dqs
+                      qualMatchesPlayed
+                  }
                 }
               }
           }
