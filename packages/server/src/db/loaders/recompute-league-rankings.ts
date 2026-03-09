@@ -204,11 +204,6 @@ export async function recomputeLeagueRankings(
         }
     );
 
-    console.log("All match stats (including non-league meets):");
-    console.table(allMatchStats);
-    console.log("League ranking stats (filtered to league meets/tournaments):");
-    console.table(stats);
-
     stats = stats
         .filter((s) => strictTeamNumbers.size === 0 || strictTeamNumbers.has(s.teamNumber))
         .sort((a, b) => a.rank - b.rank)
