@@ -33,6 +33,7 @@ import { initDynamicEntities } from "../db/entities/dyn/init";
 import { EventType, Season } from "@ftc-scout/common";
 import { getFromFtcApi } from "../ftc-api/get-from-ftc-api";
 import { Event } from "../db/entities/Event";
+import { In, IsNull, Not } from "typeorm";
 
 // Types for FTC API rankings response
 interface FtcApiRanking {
@@ -153,6 +154,26 @@ query GetLeagueRankings($season: Int!, $code: String!) {
                       qualMatchesPlayed
                   }
                  ... on TeamEventStats2024 {
+                      rank
+                      rp
+                      tb1
+                      tb2
+                      wins
+                      losses
+                      ties
+                      dqs
+                      qualMatchesPlayed
+                  }... on TeamEventStats2023 {
+                      rank
+                      rp
+                      tb1
+                      tb2
+                      wins
+                      losses
+                      ties
+                      dqs
+                      qualMatchesPlayed
+                  }... on TeamEventStats2022 {
                       rank
                       rp
                       tb1
@@ -367,7 +388,7 @@ function compareLeagueRankings(
                 );
             }
 
-            // Compare TB2
+            /*            // Compare TB2
             const apiTb2 = apiData.sortOrder3 ?? 0;
             const scoutTb2 = scoutStats.tb2 ?? 0;
             if (roundToHundredths(apiTb2) !== roundToHundredths(scoutTb2)) {
@@ -376,7 +397,7 @@ function compareLeagueRankings(
                         scoutTb2
                     ).toFixed(2)}`
                 );
-            }
+            }*/
 
             /*            // Compare W-L-T
             if (apiData.wins !== scoutStats.wins) {
@@ -455,9 +476,18 @@ async function main() {
             }
             events = [event];
         } else {
+            let childEvents = await Event.find({
+                where: { season, divisionCode: Not(IsNull()) },
+                order: { start: "DESC" },
+            });
+
             // Get all league tournament events
             events = await Event.find({
-                where: { season, type: EventType.LeagueTournament },
+                where: {
+                    season,
+                    type: EventType.LeagueTournament,
+                    code: Not(In(childEvents.map((e) => e.divisionCode))),
+                },
                 order: { start: "DESC" },
             });
         }
