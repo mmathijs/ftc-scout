@@ -18,7 +18,7 @@ import { getAdvancementSlots } from "../ftc-api/get-advancement-slots";
 async function main() {
     const args = process.argv.slice(2);
 
-    if (args.length < 2) {
+    if (args.length < 1 || args.length > 2) {
         console.error("Usage: ts-node run-compute-advancement.ts <season> <eventCode>");
         console.error("Example: ts-node run-compute-advancement.ts 2025 'MXBC'");
         process.exit(1);
@@ -42,46 +42,60 @@ async function main() {
         await DATA_SOURCE.initialize();
         initDynamicEntities();
 
-        console.log(`Computing advancement for season ${season}, event ${eventCode}...`);
+        let eventCodes = [];
 
-        let event = await DATA_SOURCE.getRepository("Event").findOneBy({ season, code: eventCode });
-        if (!event) {
-            throw new Error(`Event ${eventCode} not found for season ${season}`);
-        }
-
-        let apiAwards = [await getEventAwards(season, event.code)];
-        apiAwards.forEach(fixJudgesChoice);
-        let dbAwards = apiAwards
-            .flat()
-            .map((a) => Award.fromApi(season, a))
-            .filter(notEmpty);
-        await Award.save(dbAwards, { chunk: 100 });
-        let adv = await getAdvancementSlots(season, event.code);
-        if (!adv || adv.advancementSlots == null) {
-            console.info(`No advancement info for ${event.code}`);
+        if (eventCode) {
+            eventCodes.push(eventCode);
         } else {
-            let dirty = false;
-            if (event.advancementSlots !== adv.advancementSlots) {
-                event.advancementSlots = adv.advancementSlots;
-                dirty = true;
-            }
-            if (adv.advancesTo && event.advancesTo !== adv.advancesTo) {
-                event.advancesTo = adv.advancesTo;
-                dirty = true;
-            }
-            if (event.fcmpReserved !== adv.fcmpReserved) {
-                event.fcmpReserved = adv.fcmpReserved;
-                dirty = true;
-            }
-            if (dirty) {
-                await event.save();
-                console.info(
-                    `Updated advancement info for ${event.code} -> slots=${adv.advancementSlots}, advancesTo=${adv.advancesTo}, fcmpReserved=${adv.fcmpReserved}`
-                );
-            }
+            eventCodes = await DATA_SOURCE.getRepository("Event")
+                .find({ where: { season } })
+                .then((events) => events.map((e) => e.code));
         }
 
-        await computeAdvancementForEvent(season, eventCode);
+        for (let code of eventCodes) {
+            console.log(`Computing advancement for season ${season}, event ${code}...`);
+
+            let event = await DATA_SOURCE.getRepository("Event").findOneBy({
+                season,
+                code: code,
+            });
+            if (!event) {
+                throw new Error(`Event ${code} not found for season ${season}`);
+            }
+
+            let apiAwards = [await getEventAwards(season, event.code)];
+            apiAwards.forEach(fixJudgesChoice);
+            let dbAwards = apiAwards
+                .flat()
+                .map((a) => Award.fromApi(season, a))
+                .filter(notEmpty);
+            await Award.save(dbAwards, { chunk: 100 });
+            let adv = await getAdvancementSlots(season, event.code);
+            if (!adv || adv.advancementSlots == null) {
+                console.info(`No advancement info for ${event.code}`);
+            } else {
+                let dirty = false;
+                if (event.advancementSlots !== adv.advancementSlots) {
+                    event.advancementSlots = adv.advancementSlots;
+                    dirty = true;
+                }
+                if (adv.advancesTo && event.advancesTo !== adv.advancesTo) {
+                    event.advancesTo = adv.advancesTo;
+                    dirty = true;
+                }
+                if (event.fcmpReserved !== adv.fcmpReserved) {
+                    event.fcmpReserved = adv.fcmpReserved;
+                    dirty = true;
+                }
+                if (dirty) {
+                    await event.save();
+                    console.info(
+                        `Updated advancement info for ${event.code} -> slots=${adv.advancementSlots}, advancesTo=${adv.advancesTo}, fcmpReserved=${adv.fcmpReserved}`
+                    );
+                }
+            }
+            await computeAdvancementForEvent(season, code);
+        }
 
         console.log(`Successfully computed advancement for season ${season}, event ${eventCode}`);
         process.exit(0);
