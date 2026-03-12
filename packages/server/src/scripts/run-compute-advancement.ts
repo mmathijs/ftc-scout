@@ -32,10 +32,10 @@ async function main() {
         process.exit(1);
     }
 
-    if (!eventCode || eventCode.trim() === "") {
+    /*    if (!eventCode || eventCode.trim() === "") {
         console.error("Error: eventCode must be provided");
         process.exit(1);
-    }
+    }*/
 
     try {
         console.log(`Initializing database connection...`);
@@ -44,7 +44,7 @@ async function main() {
 
         let eventCodes = [];
 
-        if (eventCode) {
+        if (eventCode && eventCode.trim() !== "") {
             eventCodes.push(eventCode);
         } else {
             eventCodes = await DATA_SOURCE.getRepository("Event")
