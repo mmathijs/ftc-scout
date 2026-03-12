@@ -14,6 +14,7 @@ import { AwardFtcApi, notEmpty, Season } from "@ftc-scout/common";
 import { getEventAwards } from "../ftc-api/get-event-awards";
 import { Award } from "../db/entities/Award";
 import { getAdvancementSlots } from "../ftc-api/get-advancement-slots";
+import { In } from "typeorm";
 
 async function main() {
     const args = process.argv.slice(2);
@@ -48,7 +49,9 @@ async function main() {
             eventCodes.push(eventCode);
         } else {
             eventCodes = await DATA_SOURCE.getRepository("Event")
-                .find({ where: { season } })
+                .find({
+                    where: { season, type: In(["Championship", "Qualifier", "LeagueTournament"]) },
+                })
                 .then((events) => events.map((e) => e.code));
         }
 
