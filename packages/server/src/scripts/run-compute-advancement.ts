@@ -38,6 +38,8 @@ async function main() {
         process.exit(1);
     }*/
 
+    let eventsComputed = 0;
+
     try {
         console.log(`Initializing database connection...`);
         await DATA_SOURCE.initialize();
@@ -98,9 +100,15 @@ async function main() {
                 }
             }
             await computeAdvancementForEvent(season, code);
+            eventsComputed++;
+            console.log(
+                `Finished computing advancement for season ${season}, event ${code}. (${eventsComputed}/${eventCodes.length})`
+            );
         }
 
-        console.log(`Successfully computed advancement for season ${season}, event ${eventCode}`);
+        console.log(
+            `Finished computing advancement for all events. Total events processed: ${eventsComputed}`
+        );
         process.exit(0);
     } catch (error) {
         console.error("Error computing advancement:", error);
