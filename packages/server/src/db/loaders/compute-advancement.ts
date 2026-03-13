@@ -502,6 +502,9 @@ async function computeNormalPlayoffPoints(
     playoffsComplete: boolean;
 }> {
     let playoffPts = new Map<number, { points: number; isFinal: boolean }>();
+    console.log("Computing playoff points for event", eventCode);
+    console.log("Alliances:", alliances);
+    console.log("Playoff matches:", playoffMatches);
     if (!alliances || alliances.length === 0 || playoffMatches.length === 0) {
         return { playoffPts, playoffsComplete: false };
     }
@@ -513,6 +516,9 @@ async function computeNormalPlayoffPoints(
         alliances,
         playoffMatches
     );
+
+    console.log("Placement by alliance:", placementByAlliance);
+    console.log("Alive alliances:", aliveAlliances);
 
     if (playoffsComplete && aliveAlliances.length === 1) {
         placementByAlliance.set(aliveAlliances[0]!, { placement: 1, isFinal: true });
