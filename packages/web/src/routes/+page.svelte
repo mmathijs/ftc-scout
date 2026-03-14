@@ -114,7 +114,7 @@
                                   : 999999,
                       }))
                       .sort((a, b) => a.distance - b.distance)
-                      .filter((item) => item.distance < 2000) // Filter out events that are extremely far away (e.g., in another continent)
+                      .filter((item) => item.distance < 150) // Filter out events that are extremely far away (e.g., in another continent)
                       .slice(0, 5)
                       .map((item) => {
                           return item.event;
