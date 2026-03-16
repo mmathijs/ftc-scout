@@ -50,7 +50,9 @@ query Team($number: Int!, $season: Int!) {
             }
             event {
                 ...BasicEventInfo
-                teamsMinimal: teams {
+                teams {
+                    season
+                    eventCode
                     teamNumber
                 }
             }
