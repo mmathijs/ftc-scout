@@ -145,7 +145,7 @@
 
                 <MatchTable
                     matches={tep.matches.map((m) => m.match)}
-                    overrideTeamCount={event.teams.length}
+                    overrideTeamCount={event.teamsMinimal.length}
                     {event}
                     focusedTeam={team.number}
                 />
