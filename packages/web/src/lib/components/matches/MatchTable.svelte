@@ -33,6 +33,7 @@
         remote: boolean;
     };
     export let focusedTeam: number | null = null;
+    export let overrideTeamCount: number | null = null;
 
     $: timeZone = event.timezone;
     $: remote = event.remote;
@@ -59,7 +60,7 @@
         if (teamCount <= 40) return 6;
         return 8;
     }
-    $: allianceCount = allianceCountFromTeams(teamCount);
+    $: allianceCount = allianceCountFromTeams(overrideTeamCount ?? teamCount);
 
     let modalShown = false;
     let modalMatch: FullMatchFragment | null;
