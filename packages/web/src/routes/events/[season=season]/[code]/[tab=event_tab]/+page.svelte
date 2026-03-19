@@ -12,6 +12,7 @@
     import {
         faBolt,
         faCalendarAlt,
+        faChartLine,
         faHashtag,
         faLightbulb,
         faLink,
@@ -37,6 +38,7 @@
     import Rankings from "./Rankings.svelte";
     import Advancement from "./Advancement.svelte";
     import Awards from "./Awards.svelte";
+    import Preview from "./Preview.svelte";
     import { isNonCompetition } from "$lib/util/event-type";
     import Head from "$lib/components/Head.svelte";
     import Insights from "./Insights.svelte";
@@ -57,10 +59,47 @@
 
     $: season = +$page.params.season as Season;
 
+    $: insights = event?.matches?.flatMap(getMatchScores) ?? [];
+    type PreviewStat = {
+        teamNumber: number;
+        npOpr: number | null;
+        stats: NonNullable<EventPageQuery["eventByCode"]>["teams"][number]["stats"] | null;
+    };
+    type PreviewTeam = NonNullable<EventPageQuery["eventByCode"]>["teams"][number] & {
+        quickOpr: number | null;
+    };
+    $: previewStats = ((event as any)?.previewStats ?? []) as PreviewStat[];
+    $: previewStatMap = new Map<number, PreviewStat>(previewStats.map((s) => [s.teamNumber, s]));
+    $: previewTeams = (event?.teams ?? [])
+        .map((team) => ({
+            ...team,
+            quickOpr: previewStatMap.get(team.teamNumber)?.npOpr ?? null,
+            stats: previewStatMap.get(team.teamNumber)?.stats ?? team.stats,
+        }))
+        .sort((a, b) => {
+            if (a.quickOpr == null && b.quickOpr == null) return a.teamNumber - b.teamNumber;
+            if (a.quickOpr == null) return 1;
+            if (b.quickOpr == null) return -1;
+            let diff = (b.quickOpr ?? 0) - (a.quickOpr ?? 0);
+            return diff == 0 ? a.teamNumber - b.teamNumber : diff;
+        }) as PreviewTeam[];
+
+    $: hasPreviewData = previewTeams.some((team) => team.quickOpr != null);
+    $: eventHasMatches = (event?.matches?.length ?? 0) > 0;
+    $: scheduledEventDate = event?.end ?? event?.start ?? null;
+    $: eventHasPassedScheduledDate = scheduledEventDate
+        ? Date.now() > new Date(scheduledEventDate).getTime() + 86400000
+        : false;
+    $: shouldShowPreviewTab =
+        (event?.teams?.length ?? 0) > 0 &&
+        hasPreviewData &&
+        !eventHasMatches &&
+        !eventHasPassedScheduledDate;
+
     $: rankingTeams = (event?.teams ?? []).filter(notEmpty);
     $: rankingTeamsWithStats = rankingTeams.filter((t) => notEmpty(t.stats));
     $: showTeamsTab = (event?.teams?.length ?? 0) > 0 && rankingTeamsWithStats.length == 0;
-    $: insights = event?.matches?.flatMap(getMatchScores) ?? [];
+
     type LeagueRankingGroup = NonNullable<EventPageQuery["eventByCode"]>["leagueRankings"][number];
     $: eventHasStarted = event?.start ? Date.now() >= new Date(event.start).getTime() : false;
     $: leagueRankingGroups = (event?.leagueRankings ?? []) as LeagueRankingGroup[];
@@ -264,6 +303,7 @@
 
         <TabbedCard
             tabs={[
+                [faChartLine, "Preview", "preview", shouldShowPreviewTab],
                 [faBolt, "Matches", "matches", (event?.matches?.length ?? 0) > 0],
                 [faTrophy, "Rankings", "rankings", !!rankingTeamsWithStats.length],
                 [faRankingStar, "League", "league-rankings", showLeagueRankingsTab],
@@ -287,6 +327,17 @@
 
             <TabContent name="matches">
                 <MatchTable matches={event.matches} {event} {focusedTeam} />
+            </TabContent>
+
+            <TabContent name="preview">
+                <Preview
+                    teams={previewTeams}
+                    {focusedTeam}
+                    eventName={event.name}
+                    eventCode={event.code}
+                    {season}
+                    remote={event.remote}
+                />
             </TabContent>
 
             <TabContent name="rankings">
