@@ -8,29 +8,23 @@
     <svelte:fragment slot="date">March 19, 2026</svelte:fragment>
 
     <p>
-        We shipped a big update focused on advancement and leagues. The goal was simple: make event
-        pages show the full picture, so you can make decisions faster without jumping between sites.
+        With the 2025-2026 season there is a new advancement system, a lot of effort has been put
+        into adding this new advancement system to FTC<em>Scout</em>. Alongside with that there have
+        been a lot of changes, here is a quick summary:
     </p>
 
     <h2>New Features</h2>
     <ul>
         <li>
-            <b>Advancement tab on event pages:</b> You can now see advancement rankings directly on the
-            event page, including eligibility, advancement rank, and who is currently in a qualifying
-            slot.
+            <b>Advancement tab on event pages:</b> You can now just see the advancement rankings right
+            on the event page. Like who is eligible to advance, how many slots there are, and where they
+            advance to. Intermediate results are marked with a *, these results are unofficial and may
+            change as more data comes in.
         </li>
         <li>
-            <b>Advancement slots are loaded from the FTC API:</b> FTC<em>Scout</em> now pulls slot information
-            from the official API, including number of slots, where teams advance next, and reserved
-            FIRST Championship slots.
-        </li>
-        <li>
-            <b>League rankings tab:</b> League tournament events now include a League tab with standings,
-            plus a quick toggle between all league teams and teams at the current event.
-        </li>
-        <li>
-            <b>Advancement summary in event info:</b> Event pages now clearly show how many teams advance,
-            including the split between Championship and next-level advancement when that data is available.
+            <b>League rankings tab:</b> All league events now have a league rankings tab showing the
+            current league rankings, with filters to switch between all teams only participating in the
+            particular event or all teams in the league.
         </li>
         <li>
             <b>Preview Tab:</b> View the competition before it happens with a preview tab showing all
@@ -49,10 +43,10 @@
         </li>
         <li>
             <b>Better region team search:</b> Region team search is now based on a team's actual region
-            data, instead of inferring region from events they played.
+            data, instead of relying on where the team has competed in the past.
         </li>
         <li>
-            <b>Cleaner icons:</b> Duplicate icons were removed and replaced with icons that better match
+            <b>Cleaner icons:</b> Duplicate icons are removed and replaced with icons that better fit
             each section.
         </li>
     </ul>
@@ -60,26 +54,25 @@
     <h2>Bug Fixes</h2>
     <ul>
         <li>
-            <b>DQ handling is now consistent:</b> Disqualifications now always count as a loss and contribute
-            0 where relevant in tie-break calculations (matching FIRST behavior).
+            <b>DQ handling is now consistent:</b> Disqualifications now always count as a loss and give
+            0 in tie-break calculations, same as how FIRST does it.
         </li>
         <li>
             Because of that DQ fix, displayed records, rankings, and tie-breaks may change compared
-            to prior releases.
+            to before.
         </li>
     </ul>
 
     <h2>Why This Matters</h2>
     <p>
-        If you are trying to answer "Who advances from here?" this update should make that much
-        easier. You now get advancement slots, rankings, and league context directly in FTC<em
-            >Scout</em
-        >, with no need to switch back and forth between FTC-Events and FTC<em>Scout</em>.
+        If you are trying to figure out who actually advances from an event, this update makes that
+        a lot easier. All the advancement slots, rankings, and league stuff is just right there in
+        FTC<em>Scout</em> now, no need to keep jumping between FTC-Events and FTC<em>Scout</em>.
     </p>
 
     <p>
         As always, thank you for all the bug reports and feature requests. If something still looks
-        off for your region or season format, send us a message and we will take a look.
+        off for your region or your team, send us a message and we will take a look.
     </p>
 </BlogTemplate>
 
