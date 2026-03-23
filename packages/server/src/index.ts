@@ -23,6 +23,33 @@ import { setupSiteMap } from "./sitemap/setupSitemap";
 import { InMemoryLRUCache } from "@apollo/utils.keyvaluecache";
 import { responseCachePlugin } from "./graphql/plugins/response-cache-plugin";
 
+// Logs GraphQL request timing server-side for queries/mutations/subscriptions.
+const graphqlTimingPlugin = {
+    async requestDidStart(requestContext: { request: { operationName?: string | null } }) {
+        const startedAt = Date.now();
+        const operationName = requestContext.request.operationName ?? "anonymous";
+
+        return {
+            async didResolveOperation(ctx: { operation?: { operation?: string } }) {
+                const operationType = ctx.operation?.operation ?? "unknown";
+                console.info(`[GraphQL] start ${operationType} ${operationName}`);
+            },
+            async willSendResponse(ctx: { operation?: { operation?: string } }) {
+                const operationType = ctx.operation?.operation ?? "unknown";
+                const durationMs = Date.now() - startedAt;
+                console.info(`[GraphQL] done ${operationType} ${operationName} in ${durationMs}ms`);
+            },
+            async didEncounterErrors(ctx: { operation?: { operation?: string } }) {
+                const operationType = ctx.operation?.operation ?? "unknown";
+                const durationMs = Date.now() - startedAt;
+                console.warn(
+                    `[GraphQL] error ${operationType} ${operationName} after ${durationMs}ms`
+                );
+            },
+        };
+    },
+};
+
 async function main() {
     await DATA_SOURCE.initialize();
     initDynamicEntities();
@@ -65,6 +92,7 @@ async function main() {
             }),
             ApolloServerPluginDrainHttpServer({ httpServer }),
             responseCachePlugin(serverCache),
+            graphqlTimingPlugin,
             {
                 async serverWillStart() {
                     return {
