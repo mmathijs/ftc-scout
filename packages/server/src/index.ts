@@ -18,6 +18,7 @@ import { setupRest } from "./rest/setupRest";
 import { createServer } from "http";
 import { WebSocketServer } from "ws";
 import { useServer } from "graphql-ws/lib/use/ws";
+import { ApolloServerPluginUsageReporting } from "@apollo/server/plugin/usageReporting";
 import { ApolloServerPluginDrainHttpServer } from "@apollo/server/plugin/drainHttpServer";
 import { setupSiteMap } from "./sitemap/setupSitemap";
 import { InMemoryLRUCache } from "@apollo/utils.keyvaluecache";
@@ -81,11 +82,24 @@ async function main() {
         ttl: 120, // Default 2 minutes for APQ
     });
 
+    let globalVersionBasedOnTime = new Date().getTime().toFixed();
+
     let apolloServer = new ApolloServer({
         introspection: true,
         schema: GQL_SCHEMA,
         cache: serverCache,
         plugins: [
+            ApolloServerPluginUsageReporting({
+                generateClientInfo({ request }) {
+                    return {
+                        clientName:
+                            request.http?.headers.get("apollographql-client-name") ?? "unknown",
+                        clientVersion:
+                            request.http?.headers.get("apollographql-client-version") ??
+                            globalVersionBasedOnTime,
+                    };
+                },
+            }),
             ApolloServerPluginLandingPageLocalDefault({
                 footer: false,
                 embed: { runTelemetry: false, endpointIsEditable: false },
