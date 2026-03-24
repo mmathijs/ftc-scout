@@ -93,7 +93,8 @@ async function main() {
                 generateClientInfo({ request }) {
                     return {
                         clientName:
-                            request.http?.headers.get("apollographql-client-name") ?? "unknown",
+                            request.http?.headers.get("apollographql-client-name") ??
+                            "MMathijs-FTCSCOUT-SERVER",
                         clientVersion:
                             request.http?.headers.get("apollographql-client-version") ??
                             globalVersionBasedOnTime,
