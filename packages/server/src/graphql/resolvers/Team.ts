@@ -104,6 +104,7 @@ export async function getQuickStats(number: number, season: Season, region: Regi
         .where("NOT is_remote")
         .andWhere("has_stats")
         .andWhere("NOT e.modified_rules")
+        .andWhere("team_number = :number", { number })
         .groupBy("team_number");
 
     if (region && region != RegionOption.All) {
@@ -125,7 +126,7 @@ export async function getQuickStats(number: number, season: Season, region: Regi
         .addCommonTableExpression(ranks, "ranks")
         .from("ranks", "ranks")
         .select("*")
-        .where("team_number = :number", { number })
+        // .where("team_number = :number", { number })
         .getRawOne();
 
     if (!res) return null;
