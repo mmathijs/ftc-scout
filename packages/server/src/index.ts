@@ -86,6 +86,7 @@ async function main() {
         maxSize: Math.pow(2, 20) * 100, // ~100MiB
         ttl: 120, // Default 2 minutes for APQ
     });
+    let isDev = process.env.NODE_ENV === "development" || !process.env.NODE_ENV;
 
     let globalVersionBasedOnTime = new Date().getTime().toFixed();
 
@@ -94,24 +95,28 @@ async function main() {
         schema: GQL_SCHEMA,
         cache: serverCache,
         plugins: [
-            ApolloServerPluginUsageReporting({
-                generateClientInfo({ request }) {
-                    return {
-                        clientName:
-                            request.http?.headers.get("apollographql-client-name") ??
-                            "MMathijs-FTCSCOUT-SERVER",
-                        clientVersion:
-                            request.http?.headers.get("apollographql-client-version") ??
-                            globalVersionBasedOnTime,
-                    };
-                },
-            }),
             ApolloServerPluginLandingPageLocalDefault({
                 footer: false,
                 embed: { runTelemetry: false, endpointIsEditable: false },
             }),
             ApolloServerPluginDrainHttpServer({ httpServer }),
-            responseCachePlugin(serverCache),
+            ...(!isDev
+                ? [
+                      responseCachePlugin(serverCache),
+                      ApolloServerPluginUsageReporting({
+                          generateClientInfo({ request }) {
+                              return {
+                                  clientName:
+                                      request.http?.headers.get("apollographql-client-name") ??
+                                      "MMathijs-FTCSCOUT-SERVER",
+                                  clientVersion:
+                                      request.http?.headers.get("apollographql-client-version") ??
+                                      globalVersionBasedOnTime,
+                              };
+                          },
+                      }),
+                  ]
+                : []),
             graphqlTimingPlugin,
             {
                 async serverWillStart() {
