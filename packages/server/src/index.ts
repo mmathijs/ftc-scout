@@ -22,6 +22,10 @@ import { ApolloServerPluginUsageReporting } from "@apollo/server/plugin/usageRep
 import { ApolloServerPluginDrainHttpServer } from "@apollo/server/plugin/drainHttpServer";
 import { setupSiteMap } from "./sitemap/setupSitemap";
 import { InMemoryLRUCache } from "@apollo/utils.keyvaluecache";
+import {
+    rebuildQuickStatsMaterializedViews,
+    refreshQuickStatsMaterializedViews,
+} from "./db/quickstats-materialized-view";
 import { responseCachePlugin } from "./graphql/plugins/response-cache-plugin";
 
 // Logs GraphQL request timing server-side for queries/mutations/subscriptions.
@@ -54,6 +58,7 @@ const graphqlTimingPlugin = {
 async function main() {
     await DATA_SOURCE.initialize();
     initDynamicEntities();
+    await rebuildQuickStatsMaterializedViews();
 
     let app = express();
 
@@ -136,8 +141,9 @@ async function main() {
     });
 
     if (SYNC_API) {
-        fetchPriorSeasons().then(() => {
-            watchApi();
+        fetchPriorSeasons().then(async () => {
+            await refreshQuickStatsMaterializedViews(true);
+            await watchApi();
         });
     }
 }

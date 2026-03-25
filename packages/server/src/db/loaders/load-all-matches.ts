@@ -27,6 +27,7 @@ import { exit } from "process";
 import { IS_DEV } from "../../constants";
 import { newMatchesKey, pubsub } from "../../graphql/resolvers/pubsub";
 import { computeAdvancementForEvent } from "./compute-advancement";
+import { refreshQuickStatsMaterializedView } from "../quickstats-materialized-view";
 
 const IGNORED_MATCHES = [
     //cSpell:disable
@@ -161,6 +162,9 @@ export async function loadAllMatches(season: Season, loadType: LoadType) {
     for (let eventCode of advancementToRecompute) {
         await computeAdvancementForEvent(season, eventCode);
     }
+
+    console.log("Recomputing Materialized Views...");
+    await refreshQuickStatsMaterializedView(season, false);
 
     await DataHasBeenLoaded.create({
         season,
