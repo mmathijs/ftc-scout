@@ -64,6 +64,7 @@
         teamNumber: number;
         npOpr: number | null;
         stats: NonNullable<EventPageQuery["eventByCode"]>["teams"][number]["stats"] | null;
+        event: { name: string; code: string; start: string; end: string } | null;
     };
     type PreviewTeam = NonNullable<EventPageQuery["eventByCode"]>["teams"][number] & {
         quickOpr: number | null;
@@ -75,6 +76,7 @@
             ...team,
             quickOpr: previewStatMap.get(team.teamNumber)?.npOpr ?? null,
             stats: previewStatMap.get(team.teamNumber)?.stats ?? team.stats,
+            event: previewStatMap.get(team.teamNumber)?.event ?? null,
         }))
         .sort((a, b) => {
             if (a.quickOpr == null && b.quickOpr == null) return a.teamNumber - b.teamNumber;
