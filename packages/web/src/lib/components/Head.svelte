@@ -7,6 +7,10 @@
         "This is an unofficial BETA version FTCScout.org. This beta version includes: Advancement and leagues data and qol features. Report bugs on GitHub or Discord.";
     export let image = "/head/banner.png";
     export let url: string | null = null;
+    export let canonical: string | null = null;
+
+    import { env } from "$env/dynamic/public";
+    const endpoint = `http${IS_DEV ? "" : "s"}://${env.PUBLIC_SERVER_ORIGIN}`;
 </script>
 
 <svelte:head>
@@ -39,6 +43,10 @@
     <meta property="og:image:type" content="image/png" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content={url ?? $page.url.toString()} />
+
+    {#if canonical}
+        <link rel="canonical" href={endpoint + canonical} />
+    {/if}
 
     <slot />
 </svelte:head>

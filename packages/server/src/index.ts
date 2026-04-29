@@ -94,6 +94,10 @@ async function main() {
         introspection: true,
         schema: GQL_SCHEMA,
         cache: serverCache,
+        persistedQueries: {
+            ttl: 120, // 2 minutes
+            cache: serverCache,
+        },
         plugins: [
             ApolloServerPluginLandingPageLocalDefault({
                 footer: false,

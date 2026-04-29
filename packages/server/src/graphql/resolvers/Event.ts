@@ -24,6 +24,7 @@ import {
     listTy,
     nn,
     nullTy,
+    wr,
 } from "@ftc-scout/common";
 import { TeamMatchParticipationGQL } from "./TeamMatchParticipation";
 import { TeamMatchParticipation } from "../../db/entities/TeamMatchParticipation";
@@ -76,6 +77,39 @@ export const EventGQL: GraphQLObjectType = new GraphQLObjectType({
         },
         website: nullTy(StrTy),
         liveStreamURL: nullTy(StrTy),
+        livestreamsByDay: {
+            type: list(nn(EventLivestreamDayGQL)),
+            resolve: (e) => {
+                if (
+                    e.livestreamsByDay &&
+                    Array.isArray(e.livestreamsByDay) &&
+                    e.livestreamsByDay.length > 0
+                ) {
+                    return e.livestreamsByDay.map((ls) => ({
+                        day: DateTime.fromISO(ls.day as any).toJSDate(),
+                        liveStreamURL: ls.liveStreamURL,
+                        webcasts: ls.webcasts ?? [],
+                    }));
+                }
+
+                if (e.liveStreamURL) {
+                    for (let day of [e.start, e.end]) {
+                        if (day) {
+                            return [
+                                {
+                                    day,
+                                    liveStreamURL: e.liveStreamURL,
+                                    webcasts: e.webcasts,
+                                    label: null,
+                                },
+                            ];
+                        }
+                    }
+                }
+
+                return [];
+            },
+        },
         webcasts: listTy(StrTy),
         timezone: StrTy,
         start: DateTy,
@@ -254,8 +288,12 @@ export const EventGQL: GraphQLObjectType = new GraphQLObjectType({
             },
         },
         previewStats: {
-            type: list(nn(EventPreviewStatGQL)),
+            ...nullTy(wr(list(nn(EventPreviewStatGQL)))),
             resolve: async (event) => {
+                if (event.published) {
+                    return null;
+                }
+
                 let roster = await TeamEventParticipation[event.season].find({
                     where: { season: event.season, eventCode: event.code },
                     select: ["teamNumber"],
@@ -358,6 +396,15 @@ const EventAdvancementInfoGQL = new GraphQLObjectType({
                 return Event.find({ where: { season, advancesTo: code } });
             },
         },
+    },
+});
+
+const EventLivestreamDayGQL: GraphQLObjectType = new GraphQLObjectType({
+    name: "EventLivestreamDay",
+    fields: {
+        day: DateTy,
+        liveStreamURL: nullTy(StrTy),
+        webcasts: listTy(StrTy),
     },
 });
 

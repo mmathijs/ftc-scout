@@ -71,6 +71,7 @@
         ? `Information and matches for team ${team.number} ${team.name}.`
         : `Information and matches for team ${$page.params.number}`}
     image="https://api.ftcscout.org/banners/teams/{$page.params.number}"
+    canonical={`/teams/${$page.params.number}`}
 />
 
 <WidthProvider>
@@ -138,7 +139,11 @@
                 {#if tep.awards.length}
                     <InfoIconRow icon={faMedal}>
                         {#each tep.awards as award, i}
-                            <Award {award} comma={i != tep.awards.length - 1} />
+                            <Award
+                                {award}
+                                comma={i != tep.awards.length - 1}
+                                season={event.season}
+                            />
                         {/each}
                     </InfoIconRow>
                 {/if}
