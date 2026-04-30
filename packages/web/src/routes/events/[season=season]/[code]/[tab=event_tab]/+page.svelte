@@ -271,6 +271,10 @@
                   liveStreamURL: event?.liveStreamURL ?? null,
               }
             : null);
+
+    $: if ($page.url) {
+        showAllLivestreams = false;
+    }
 </script>
 
 <Head
