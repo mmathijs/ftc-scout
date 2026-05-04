@@ -47,6 +47,7 @@
         .filter((m) => m.tournamentLevel == TournamentLevel.Finals)
         .sort(matchSorter);
     $: doubleElim = matches.filter((m) => m.tournamentLevel == TournamentLevel.DoubleElim);
+    $: roundRobin = matches.filter((m) => m.tournamentLevel == TournamentLevel.RoundRobin);
 
     $: soloMatches = groupBy(matches, (m) => m.id - (m.id % 1000));
 
@@ -54,6 +55,9 @@
     $: anyDq = matches.some((m) => m.teams.some((t) => t.dq));
 
     $: teamCount = new Set(matches.flatMap((m) => m.teams.map((t) => t.teamNumber))).size;
+
+    //TODO MAKE THIS DYNAMIC SOMEHOW, the 1 is for team page, keep that
+    $: roundRobinAllianceCount = false ? 1 : 6;
 
     let modalShown = false;
     let modalMatch: FullMatchFragment | null;
@@ -137,6 +141,22 @@
                         {showNonPenaltyScores}
                     />
                 {/each}
+                {#if roundRobin.length}
+                    <SectionRow name={"Round Robin"} />
+                {/if}
+                <!--TODO Make teamcount alliance count or something-->
+                {#each roundRobin as match, i}
+                    <TradMatchRow
+                        {match}
+                        {eventCode}
+                        {season}
+                        {timeZone}
+                        {focusedTeam}
+                        teamCount={roundRobinAllianceCount}
+                        zebraStripe={i % 2 == 1}
+                        {showNonPenaltyScores}
+                    />
+                {/each}
                 {#if semis.length}
                     <SectionRow name={"Semifinals"} />
                 {/if}
@@ -195,12 +215,17 @@
 
 {#if showHeartLegend && doubleElim.length > 0}
     <div style:margin-top="var(--md-gap)" style="display: flex; gap: var(--vl-gap)">
-        <div><Fa icon={faHeart} style="color: var(--red-team-color)" /> Elimination Remaining</div>
         <div>
-            <Fa icon={faHeartBroken} style="color: var(--grayed-out-text-color)" /> Lost This Match
+            <Fa icon={faHeart} style="color: var(--red-team-color)" />
+            Elimination Remaining
         </div>
         <div>
-            <Fa icon={faHeartOutline} style="color: var(--grayed-out-text-color)" /> Lost Previous Match
+            <Fa icon={faHeartBroken} style="color: var(--grayed-out-text-color)" />
+            Lost This Match
+        </div>
+        <div>
+            <Fa icon={faHeartOutline} style="color: var(--grayed-out-text-color)" />
+            Lost Previous Match
         </div>
     </div>
 {/if}
@@ -221,9 +246,11 @@
         border-bottom-left-radius: 7px;
         border-bottom-right-radius: 7px;
     }
+
     table tbody :global(tr:last-child) :global(td:first-child) {
         border-bottom-left-radius: 7px;
     }
+
     table tbody :global(tr:last-child) :global(td:last-child) {
         border-bottom-right-radius: 7px;
     }

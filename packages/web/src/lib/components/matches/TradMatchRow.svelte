@@ -1,8 +1,8 @@
 <script lang="ts">
     import {
         Alliance,
-        TournamentLevel,
         type FullMatchFragment,
+        TournamentLevel,
     } from "../../graphql/generated/graphql-operations";
     import { sortTeams } from "../../util/sorters";
     import DeLives from "./DELives.svelte";
@@ -29,7 +29,10 @@
     $: blues = [...blueTeams, ...blueExtras].sort(sortTeams);
 
     $: isDoubleElim = match.tournamentLevel == TournamentLevel.DoubleElim;
-    $: isNewRound = isDoubleElim && checkIsNewRound(match.series, match.matchNum, teamCount);
+    $: isRoundRobin = match.tournamentLevel == TournamentLevel.RoundRobin;
+    $: isNewRound =
+        (isDoubleElim && checkIsNewRoundDoubleElim(match.series, match.matchNum, teamCount)) ||
+        (isRoundRobin && checkIsNewRoundRobin(match.series, teamCount));
 
     $: winner = computeWinner(match.scores);
 
@@ -66,7 +69,11 @@
         }
     }
 
-    function checkIsNewRound(series: number, matchNum: number, teamCount: number): boolean {
+    function checkIsNewRoundDoubleElim(
+        series: number,
+        matchNum: number,
+        teamCount: number
+    ): boolean {
         if (matchNum != 1) {
             return false;
         }
@@ -80,6 +87,10 @@
         } else {
             return series == 5 || series == 9 || series == 11 || series == 13 || series == 14;
         }
+    }
+
+    function checkIsNewRoundRobin(series: number, allianceCount: number): boolean {
+        return (series - 1) % (allianceCount / 2) == 0;
     }
 </script>
 
