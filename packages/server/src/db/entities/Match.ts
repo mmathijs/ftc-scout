@@ -72,6 +72,8 @@ export class Match extends BaseEntity {
                 return `F-${this.matchNum}`;
             case TournamentLevel.DoubleElim:
                 return this.matchNum > 1 ? `M-${this.series}.${this.matchNum}` : `M-${this.series}`;
+            case TournamentLevel.RoundRobin:
+                return `RR-${this.series}`;
         }
     }
 
@@ -96,6 +98,8 @@ export class Match extends BaseEntity {
             allMatches
         );
         tournamentLevel = tournamentLevel_;
+
+        console.log("Series: ", series, tournamentLevel);
 
         return Match.create({
             eventSeason: event.season,
@@ -138,10 +142,10 @@ function computeMatchOrder(
         return [level, api.series, api.matchNumber];
     }
 
+    let allPlayoffMatches = allMatches.filter((m) => m.tournamentLevel == "PLAYOFF");
+
     // Now we have to handle double elim matches
-    let uniquePlayoffTeams = allMatches
-        .filter((m) => m.tournamentLevel == "PLAYOFF")
-        .flatMap((m) => m.teams.map((t) => t.teamNumber));
+    let uniquePlayoffTeams = allPlayoffMatches.flatMap((m) => m.teams.map((t) => t.teamNumber));
     uniquePlayoffTeams = [...new Set(uniquePlayoffTeams)];
 
     if (uniquePlayoffTeams.length <= 4) {
@@ -149,6 +153,34 @@ function computeMatchOrder(
         // is really more of a best of three. Let's call it a finals
         level = TournamentLevel.Finals;
         return [level, 0, api.matchNumber];
+    }
+
+    let totalSeries = allPlayoffMatches
+        .filter((match) => !match.description.toLowerCase().includes("finals"))
+        .reduce((prev: MatchFtcApi, curr: MatchFtcApi) =>
+            prev.series > curr.series ? prev : curr
+        ).series;
+
+    let teamsPerAlliance = allPlayoffMatches.some((match) =>
+        match.teams.some((team) => team.station === "Red3" || team.station === "Blue3")
+    )
+        ? 3
+        : 2;
+    let allianceCount = uniquePlayoffTeams.length / teamsPerAlliance;
+
+    if (allianceCount % 1 != 0) {
+        console.error(`AllianceCount is not an integer for event: ${event.code}`);
+    }
+
+    // Check if it is round-robin by checking if the amount of series is equal to the expected amount for round-robin
+    if (totalSeries === (allianceCount * (allianceCount - 1)) / 2) {
+        if (api.series > totalSeries) {
+            level = TournamentLevel.Finals;
+            return [level, api.series, api.matchNumber];
+        }
+
+        level = TournamentLevel.RoundRobin;
+        return [level, api.series, api.matchNumber];
     }
 
     return [level, api.series, api.matchNumber];
