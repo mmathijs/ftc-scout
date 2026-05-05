@@ -18,7 +18,7 @@
 <style>
     tr {
         display: grid;
-        grid-template-columns: calc(2.4rem + 10.75em) 1fr 1fr;
+        grid-template-columns: 10.75em 1fr 1fr;
         height: calc(var(--xl-gap) * 1.5);
     }
 
