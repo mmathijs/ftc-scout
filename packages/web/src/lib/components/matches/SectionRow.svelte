@@ -1,8 +1,14 @@
 <script lang="ts">
+    import { getContext } from "svelte";
+    import { SHOW_EVENT_HAS_VIDEOS } from "./MatchTable.svelte";
+
     export let name: string;
+
+    const hasEventVideosFn = getContext(SHOW_EVENT_HAS_VIDEOS) as () => boolean | undefined;
+    $: eventHasVideos = !!(hasEventVideosFn ? hasEventVideosFn() : false);
 </script>
 
-<tr>
+<tr class:eventHasVideos>
     <td />
     <td class="red" />
     <td class="blue" />
@@ -12,13 +18,21 @@
 <style>
     tr {
         display: grid;
-        grid-template-columns: 10.75em 1fr 1fr;
+        grid-template-columns: calc(2.4rem + 10.75em) 1fr 1fr;
         height: calc(var(--xl-gap) * 1.5);
+    }
+
+    tr.eventHasVideos {
+        grid-template-columns: calc(2.4rem + 10.75em) 1fr 1fr;
     }
 
     @media (max-width: 1000px) {
         tr {
             grid-template-columns: 9.75em 1fr 1fr;
+        }
+
+        tr.eventHasVideos {
+            grid-template-columns: calc(2.4rem + 9.75em) 1fr 1fr;
         }
     }
 

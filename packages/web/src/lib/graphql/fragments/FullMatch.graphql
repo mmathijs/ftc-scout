@@ -11,6 +11,14 @@ fragment FullMatch on Match {
     scores {
         ...FullMatchScores
     }
+    videos {
+        url
+        title
+        source
+        official
+        createdAt
+        updatedAt
+    }
     teams {
         season
         eventCode

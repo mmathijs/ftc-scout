@@ -9,6 +9,14 @@
     import MatchScore, { computeWinner } from "./MatchScore.svelte";
     import MatchTeam from "./MatchTeam.svelte";
     import PlaceholderMatchTeam from "./PlaceholderMatchTeam.svelte";
+    import { getContext } from "svelte";
+    import Fa from "svelte-fa";
+    import { faCirclePlay } from "@fortawesome/free-solid-svg-icons";
+    import {
+        SHOW_MATCH_VIDEO,
+        type ShowMatchVideoFn,
+        SHOW_EVENT_HAS_VIDEOS,
+    } from "./MatchTable.svelte";
 
     export let match: FullMatchFragment;
     export let eventCode: string;
@@ -35,6 +43,11 @@
         (isRoundRobin && checkIsNewRoundRobin(match.series, teamCount));
 
     $: winner = computeWinner(match.scores);
+
+    let showVideo: ShowMatchVideoFn = getContext(SHOW_MATCH_VIDEO);
+    const hasEventVideosFn = getContext(SHOW_EVENT_HAS_VIDEOS) as () => boolean | undefined;
+    $: eventHasVideos = !!(hasEventVideosFn ? hasEventVideosFn() : false);
+    $: matchHasVideo = ((match as any).videos ?? []).length > 0;
 
     function hasAlreadyLost(series: number, teamCount: number, alliance: Alliance): boolean {
         if (teamCount <= 10) {
@@ -94,7 +107,28 @@
     }
 </script>
 
-<tr class:zebraStripe class:isDoubleElim class:new-round={isNewRound}>
+<tr
+    class:zebraStripe
+    class:isDoubleElim
+    class:new-round={isNewRound}
+    class:hasVideo={eventHasVideos}
+>
+    {#if eventHasVideos}
+        <td class="video-col">
+            {#if matchHasVideo}
+                <button
+                    class="play-button"
+                    on:click|stopPropagation={() => showVideo(match)}
+                    aria-label="Show match videos"
+                    title="Show match videos"
+                >
+                    <Fa icon={faCirclePlay} />
+                </button>
+            {:else}
+                <span class="video-placeholder" aria-hidden="true" />
+            {/if}
+        </td>
+    {/if}
     <MatchScore {match} {timeZone} {showNonPenaltyScores} />
 
     {#if isDoubleElim}
@@ -156,6 +190,15 @@
         grid-template-columns: 10.75em auto repeat(6, 1fr) auto repeat(6, 1fr);
     }
 
+    /* When the event has videos we add a small first column for the play button */
+    tr.hasVideo {
+        grid-template-columns: 2.4rem 10.75em repeat(12, 1fr);
+    }
+
+    tr.hasVideo.isDoubleElim {
+        grid-template-columns: 2.4rem 10.75em auto repeat(6, 1fr) auto repeat(6, 1fr);
+    }
+
     tr.new-round {
         border-top: 1px solid var(--sep-color);
     }
@@ -168,9 +211,58 @@
         tr.isDoubleElim {
             grid-template-columns: 9.75em auto repeat(6, 1fr) auto repeat(6, 1fr);
         }
+
+        /* When the event has videos we add a small first column for the play button */
+        tr.hasVideo {
+            grid-template-columns: 2.4rem 9.75em repeat(12, 1fr);
+        }
+
+        tr.hasVideo.isDoubleElim {
+            grid-template-columns: 2.4rem 9.75em auto repeat(6, 1fr) auto repeat(6, 1fr);
+        }
     }
 
     .zebraStripe {
         background: var(--zebra-stripe-color);
+    }
+
+    .video-col {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding-left: var(--sm-gap);
+        padding-right: var(--sm-gap);
+    }
+
+    .play-button {
+        background: transparent;
+        border: none;
+        padding: 0.08rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--purple-stat-color);
+        cursor: pointer;
+        line-height: 0;
+        width: 1.6rem;
+        height: 1.6rem;
+        border-radius: 6px;
+    }
+
+    .play-button:focus {
+        outline: 2px solid var(--purple-stat-color);
+        border-radius: 6px;
+    }
+
+    .play-button :global(svg) {
+        width: 1.4em;
+        height: 1.4em;
+        display: block;
+    }
+
+    .video-placeholder {
+        display: inline-block;
+        width: 1.6rem;
+        height: 1.6rem;
     }
 </style>

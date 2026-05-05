@@ -1,9 +1,31 @@
+<script lang="ts">
+    import { getContext } from "svelte";
+    import { SHOW_EVENT_HAS_VIDEOS } from "./MatchTable.svelte";
+    import { faCirclePlay } from "@fortawesome/free-solid-svg-icons";
+    import Fa from "svelte-fa";
+
+    const hasEventVideosFn = getContext(SHOW_EVENT_HAS_VIDEOS) as () => boolean | undefined;
+    $: eventHasVideos = !!(hasEventVideosFn ? hasEventVideosFn() : false);
+</script>
+
 <thead>
-    <tr>
+    <tr class:hasVideo={eventHasVideos}>
+        {#if eventHasVideos}
+            <th class="video-col">
+                <button
+                    class="play-button"
+                    aria-label="Show match videos"
+                    title="Show match videos"
+                >
+                    <Fa icon={faCirclePlay} />
+                </button>
+            </th>
+        {/if}
         <th class="s">
             <div>Match</div>
             <div>Score</div>
-        </th><th class="r">Red Alliance</th>
+        </th>
+        <th class="r">Red Alliance</th>
         <th class="b">Blue Alliance</th>
     </tr>
 </thead>
@@ -18,9 +40,18 @@
         grid-template-columns: 10.75em 1fr 1fr;
     }
 
+    tr.hasVideo {
+        grid-template-columns: 2.4rem 10.75em 1fr 1fr;
+        box-shadow: rgb(0 0 0 / 14%) 0 -4px 4px -2px inset;
+    }
+
     @media (max-width: 1000px) {
         tr {
             grid-template-columns: 9.75em 1fr 1fr;
+        }
+
+        tr.hasVideo {
+            grid-template-columns: 2.2rem 9.75em 1fr 1fr;
         }
     }
 
@@ -36,8 +67,10 @@
         grid-template-columns: 1fr 1.4fr;
         justify-content: center;
         padding: 0;
+    }
 
-        box-shadow: rgb(0 0 0 / 14%) 0px -4px 4px -2px inset;
+    tr:not(.hasVideo) .s {
+        box-shadow: rgb(0 0 0 / 14%) 0 -4px 4px -2px inset;
     }
 
     .s * {
@@ -54,5 +87,45 @@
         color: var(--team-text-color);
 
         border-top-right-radius: 7px;
+    }
+
+    .video-col {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding-left: var(--sm-gap);
+        padding-right: var(--sm-gap);
+    }
+
+    .play-button {
+        background: transparent;
+        border: none;
+        padding: 0.08rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--purple-stat-color);
+        cursor: pointer;
+        line-height: 0;
+        width: 1.6rem;
+        height: 1.6rem;
+        border-radius: 6px;
+    }
+
+    .play-button:focus {
+        outline: 2px solid var(--purple-stat-color);
+        border-radius: 6px;
+    }
+
+    .play-button :global(svg) {
+        width: 1.4em;
+        height: 1.4em;
+        display: block;
+    }
+
+    .video-placeholder {
+        display: inline-block;
+        width: 1.6rem;
+        height: 1.6rem;
     }
 </style>

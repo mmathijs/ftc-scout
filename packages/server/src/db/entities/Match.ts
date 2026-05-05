@@ -20,6 +20,7 @@ import { Event } from "./Event";
 import { DateTime } from "luxon";
 import { MatchScore } from "./dyn/match-score";
 import { TeamMatchParticipation } from "./TeamMatchParticipation";
+import { Video } from "./Video";
 import { frontendMSFromDB } from "../../graphql/dyn/match-score";
 
 @Entity()
@@ -39,6 +40,8 @@ export class Match extends BaseEntity {
     scores!: MatchScore[];
 
     teams!: TeamMatchParticipation[];
+
+    videos!: Video[];
 
     @Column()
     hasBeenPlayed!: boolean;

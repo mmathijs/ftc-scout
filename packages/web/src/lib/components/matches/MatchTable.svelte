@@ -1,6 +1,9 @@
 <script lang="ts" context="module">
     export const SHOW_MATCH_SCORE = {};
     export type ShowMatchFn = (match: FullMatchFragment) => void;
+    export const SHOW_MATCH_VIDEO = {};
+    export type ShowMatchVideoFn = (match: FullMatchFragment) => void;
+    export const SHOW_EVENT_HAS_VIDEOS = {};
 </script>
 
 <script lang="ts">
@@ -17,6 +20,7 @@
     import RemoteMatches from "./RemoteMatches.svelte";
     import { page } from "$app/stores";
     import ScoreModal from "./score-modal/ScoreModal.svelte";
+    import VideoModal from "./VideoModal.svelte";
     import { setContext } from "svelte";
     import { queryParam } from "../../util/search-params/search-params";
     import { faHeart, faHeartBroken } from "@fortawesome/free-solid-svg-icons";
@@ -48,6 +52,7 @@
         .sort(matchSorter);
     $: doubleElim = matches.filter((m) => m.tournamentLevel == TournamentLevel.DoubleElim);
     $: roundRobin = matches.filter((m) => m.tournamentLevel == TournamentLevel.RoundRobin);
+    $: hasAnyVideos = matches.some((m) => ((m as any).videos ?? []).length > 0);
 
     $: soloMatches = groupBy(matches, (m) => m.id - (m.id % 1000));
 
@@ -61,6 +66,8 @@
 
     let modalShown = false;
     let modalMatch: FullMatchFragment | null;
+    let videoModalShown = false;
+    let videoModalMatch: FullMatchFragment | null;
 
     function show(match: FullMatchFragment) {
         modalMatch = match;
@@ -68,7 +75,14 @@
         modalShown = true;
     }
 
+    function showVideo(match: FullMatchFragment) {
+        videoModalMatch = match;
+        videoModalShown = true;
+    }
+
     setContext(SHOW_MATCH_SCORE, show);
+    setContext(SHOW_MATCH_VIDEO, showVideo);
+    setContext(SHOW_EVENT_HAS_VIDEOS, () => hasAnyVideos);
 
     let modalMatchId = queryParam<[string, number] | null>("scores", {
         encode: (m) => (m ? `${m[0]}-${m[1]}` : null),
@@ -91,6 +105,7 @@
     on:close={() => ($modalMatchId = null)}
 />
 
+<VideoModal bind:shown={videoModalShown} bind:match={videoModalMatch} />
 <table class:remote>
     {#if remote}
         <RemoteMatchTableHeader />
