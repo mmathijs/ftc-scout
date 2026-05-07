@@ -125,7 +125,7 @@
         display: flex;
         flex-direction: column;
         gap: var(--md-gap);
-        width: min(90vw, 1100px);
+        width: min(90vw, 1500px);
     }
 
     .sources {
@@ -157,7 +157,7 @@
     }
 
     iframe {
-        width: min(90vw, 1100px);
+        width: min(90vw, 1500px);
         aspect-ratio: 16 / 9;
         border: none;
         border-radius: 8px;
