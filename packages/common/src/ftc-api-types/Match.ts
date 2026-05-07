@@ -12,6 +12,7 @@ export interface MatchFtcApi {
     scoreBlueFinal: number | null;
     scoreBlueFoul: number | null;
     scoreBlueAuto: number | null;
+    videoURL: string | null;
     teams: TeamMatchParticipationFtcApi[];
 }
 

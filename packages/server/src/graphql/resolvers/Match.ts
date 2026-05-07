@@ -12,6 +12,7 @@ import graphqlFields from "graphql-fields";
 import { FindOptionsWhere } from "typeorm";
 import { TeamMatchParticipationGQL } from "./TeamMatchParticipation";
 import { EventGQL } from "./Event";
+import { VideoGQL } from "./Video";
 import { MatchScore } from "../../db/entities/dyn/match-score";
 import { TeamMatchParticipation } from "../../db/entities/TeamMatchParticipation";
 
@@ -42,6 +43,8 @@ export const MatchGQL: GraphQLObjectType = new GraphQLObjectType({
         },
         teams: { type: list(nn(TeamMatchParticipationGQL)) },
 
+        videos: { type: list(nn(VideoGQL)) },
+
         event: {
             type: nn(EventGQL),
             resolve: dataLoaderResolverSingle<Match, Event, { season: Season; code: string }>(
@@ -54,14 +57,30 @@ export const MatchGQL: GraphQLObjectType = new GraphQLObjectType({
 
 export function singleSeasonScoreAwareMatchLoader<
     K extends { eventSeason: Season } & FindOptionsWhere<Match>
->(keys: K[], info: GraphQLResolveInfo[], includeScores = false, includeTeams = false) {
+>(
+    keys: K[],
+    info: GraphQLResolveInfo[],
+    includeScores = false,
+    includeTeams = false,
+    includeVideos = false
+) {
     includeScores ||= info.some((i) => "scores" in graphqlFields(i));
     includeTeams ||= info.some((i) => "teams" in graphqlFields(i));
+    includeVideos ||= info.some((i) => "videos" in graphqlFields(i));
     let season = keys[0].eventSeason as Season;
 
     let q = DATA_SOURCE.getRepository(Match)
         .createQueryBuilder("m")
         .where(keyListToWhereClause("m", keys));
+
+    if (includeVideos) {
+        q.leftJoinAndMapMany(
+            "m.videos",
+            "video",
+            "v",
+            "m.event_season = v.event_season AND m.event_code = v.event_code AND m.id = v.match_id"
+        );
+    }
 
     return q.getMany().then(async (matches) => {
         if (matches.length === 0) return matches;

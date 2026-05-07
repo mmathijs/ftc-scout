@@ -1,5 +1,6 @@
 export const TournamentLevel = {
     Quals: "Quals",
+    RoundRobin: "RoundRobin",
     Semis: "Semis",
     Finals: "Finals",
     DoubleElim: "DoubleElim",
@@ -7,9 +8,10 @@ export const TournamentLevel = {
 export type TournamentLevel = (typeof TournamentLevel)[keyof typeof TournamentLevel];
 
 export function tournamentLevelFromFtcApi(
-    str: "OTHER" | "QUALIFICATION" | "SEMIFINAL" | "FINAL" | "PLAYOFF"
+    str: "OTHER" | "QUALIFICATION" | "SEMIFINAL" | "FINAL" | "PLAYOFF" | "ROUNDROBIN"
 ): TournamentLevel {
     return {
+        ROUNDROBIN: TournamentLevel.RoundRobin,
         OTHER: TournamentLevel.Quals,
         QUALIFICATION: TournamentLevel.Quals,
         SEMIFINAL: TournamentLevel.Semis,

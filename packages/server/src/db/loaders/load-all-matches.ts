@@ -28,6 +28,7 @@ import { IS_DEV } from "../../constants";
 import { newMatchesKey, pubsub } from "../../graphql/resolvers/pubsub";
 import { computeAdvancementForEvent } from "./compute-advancement";
 import { refreshQuickStatsMaterializedView } from "../quickstats-materialized-view";
+import { Video, VideoSource } from "../entities/Video";
 
 const IGNORED_MATCHES = [
     //cSpell:disable
@@ -92,6 +93,21 @@ export async function loadAllMatches(season: Season, loadType: LoadType) {
                         ? [] // Remote matches that weren't played still return scores
                         : theseScores.flatMap((s) => MatchScore.fromApi(s, dbMatch, event.remote));
 
+                if (!dbMatch.videos) {
+                    dbMatch.videos = [];
+                }
+
+                if (match.videoURL) {
+                    dbMatch.videos.push(
+                        Video.create({
+                            official: true,
+                            source: VideoSource.FTCEvents,
+                            url: match.videoURL,
+                            title: `FTC-Events`,
+                        })
+                    );
+                }
+
                 dbMatch.teams = dbTmps;
                 dbMatch.scores = dbScores;
 
@@ -115,6 +131,12 @@ export async function loadAllMatches(season: Season, loadType: LoadType) {
             );
             await DATA_SOURCE.transaction(async (em) => {
                 await em.save(allDbMatches, { chunk: 100 });
+
+                const allVideos = createVideosForMatches(allDbMatches);
+                if (allVideos.length) {
+                    await em.getRepository(Video).save(allVideos, { chunk: 100 });
+                }
+
                 await em.save(allDbTmps, { chunk: 500 });
                 await em.getRepository(MatchScoreSchemas[season]).save(allDbScores, { chunk: 100 });
                 await em.getRepository(TepSchemas[season]).save(allDbTeps, { chunk: 100 });
@@ -240,4 +262,17 @@ function publishMatchUpdates(matches: Match[]) {
         let eMatches = grouped[eventCode];
         pubsub.publish(newMatchesKey(matches[0].eventSeason, eventCode), { newMatches: eMatches });
     }
+}
+
+function createVideosForMatches(matches: Match[]): Video[] {
+    const videos: Video[] = [];
+    for (const m of matches) {
+        if (!m.videos || !m.videos.length) continue;
+
+        for (const v of m.videos) {
+            (v as any).match = m;
+            videos.push(v);
+        }
+    }
+    return videos;
 }
