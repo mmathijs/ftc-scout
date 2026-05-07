@@ -43,7 +43,7 @@ export const MatchGQL: GraphQLObjectType = new GraphQLObjectType({
         },
         teams: { type: list(nn(TeamMatchParticipationGQL)) },
 
-        videos: { type: list(nn(VideoGQL)) },
+        videos: { type: list(nn(VideoGQL)), resolve: (m) => m.videos || [] },
 
         event: {
             type: nn(EventGQL),
@@ -63,7 +63,7 @@ export function singleSeasonScoreAwareMatchLoader<
     includeScores = false,
     includeTeams = false,
     includeVideos = false
-) {
+): Promise<Match[]> {
     includeScores ||= info.some((i) => "scores" in graphqlFields(i));
     includeTeams ||= info.some((i) => "teams" in graphqlFields(i));
     includeVideos ||= info.some((i) => "videos" in graphqlFields(i));
