@@ -100,6 +100,7 @@
                             title={selectedVideo.title}
                             allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
                             allowfullscreen
+                            referrerpolicy="strict-origin-when-cross-origin"
                         />
                         {#if embedUrl == selectedVideo.url}
                             <a href={selectedVideo.url} target="_blank" rel="noreferrer">
