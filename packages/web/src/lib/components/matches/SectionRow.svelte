@@ -32,7 +32,7 @@
         }
 
         tr.eventHasVideos {
-            grid-template-columns: calc(2.4rem + 9.75em) 1fr 1fr;
+            grid-template-columns: calc(1.8rem + 9.75em) 1fr 1fr;
         }
     }
 

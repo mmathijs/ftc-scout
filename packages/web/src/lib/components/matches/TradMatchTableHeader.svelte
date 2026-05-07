@@ -45,16 +45,6 @@
         box-shadow: rgb(0 0 0 / 14%) 0 -4px 4px -2px inset;
     }
 
-    @media (max-width: 1000px) {
-        tr {
-            grid-template-columns: 9.75em 1fr 1fr;
-        }
-
-        tr.hasVideo {
-            grid-template-columns: 2.2rem 9.75em 1fr 1fr;
-        }
-    }
-
     th {
         display: block;
         font-weight: bold;
@@ -108,8 +98,9 @@
         cursor: pointer;
         line-height: 0;
         width: 1.6rem;
-        height: 1.6rem;
+        height: 0;
         border-radius: 6px;
+        font-size: 1.5rem;
     }
 
     .play-button:focus {
@@ -123,9 +114,17 @@
         display: block;
     }
 
-    .video-placeholder {
-        display: inline-block;
-        width: 1.6rem;
-        height: 1.6rem;
+    @media (max-width: 1000px) {
+        tr {
+            grid-template-columns: 9.75em 1fr 1fr;
+        }
+
+        tr.hasVideo {
+            grid-template-columns: 1.8rem 9.75em 1fr 1fr;
+        }
+
+        .play-button {
+            font-size: 1.25rem;
+        }
     }
 </style>

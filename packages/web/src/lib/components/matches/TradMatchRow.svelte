@@ -203,6 +203,10 @@
         border-top: 1px solid var(--sep-color);
     }
 
+    .play-button {
+        font-size: 1.5rem;
+    }
+
     @media (max-width: 1000px) {
         tr {
             grid-template-columns: 9.75em repeat(12, 1fr);
@@ -214,11 +218,15 @@
 
         /* When the event has videos we add a small first column for the play button */
         tr.hasVideo {
-            grid-template-columns: 2.4rem 9.75em repeat(12, 1fr);
+            grid-template-columns: 1.8rem 9.75em repeat(12, 1fr);
         }
 
         tr.hasVideo.isDoubleElim {
-            grid-template-columns: 2.4rem 9.75em auto repeat(6, 1fr) auto repeat(6, 1fr);
+            grid-template-columns: 1.8rem 9.75em auto repeat(6, 1fr) auto repeat(6, 1fr);
+        }
+
+        .play-button {
+            font-size: 1.25rem;
         }
     }
 
