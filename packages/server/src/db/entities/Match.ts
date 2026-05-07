@@ -102,8 +102,6 @@ export class Match extends BaseEntity {
         );
         tournamentLevel = tournamentLevel_;
 
-        console.log("Series: ", series, tournamentLevel);
-
         return Match.create({
             eventSeason: event.season,
             eventCode: event.code,
