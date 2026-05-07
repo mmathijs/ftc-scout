@@ -125,5 +125,11 @@ async function getWorldRecordMatch(
             "tmp",
             "m.event_season = tmp.season AND m.event_code = tmp.event_code AND m.id = tmp.match_id"
         )
+        .leftJoinAndMapMany(
+            "m.videos",
+            "video",
+            "v",
+            "m.event_season = v.event_season AND m.event_code = v.event_code AND m.id = v.match_id"
+        )
         .getOne();
 }
