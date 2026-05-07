@@ -1,7 +1,7 @@
 <script lang="ts">
     import { getContext } from "svelte";
     import { SHOW_EVENT_HAS_VIDEOS } from "./MatchTable.svelte";
-    import { faCirclePlay } from "@fortawesome/free-solid-svg-icons";
+    import { faCirclePlay } from "@fortawesome/free-regular-svg-icons";
     import Fa from "svelte-fa";
 
     const hasEventVideosFn = getContext(SHOW_EVENT_HAS_VIDEOS) as () => boolean | undefined;

@@ -11,7 +11,7 @@
     import PlaceholderMatchTeam from "./PlaceholderMatchTeam.svelte";
     import { getContext } from "svelte";
     import Fa from "svelte-fa";
-    import { faCirclePlay } from "@fortawesome/free-solid-svg-icons";
+    import { faCirclePlay } from "@fortawesome/free-regular-svg-icons";
     import {
         SHOW_MATCH_VIDEO,
         type ShowMatchVideoFn,
