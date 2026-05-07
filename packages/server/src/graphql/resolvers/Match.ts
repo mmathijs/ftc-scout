@@ -13,6 +13,8 @@ import { FindOptionsWhere } from "typeorm";
 import { TeamMatchParticipationGQL } from "./TeamMatchParticipation";
 import { EventGQL } from "./Event";
 import { VideoGQL } from "./Video";
+import { MatchScore } from "../../db/entities/dyn/match-score";
+import { TeamMatchParticipation } from "../../db/entities/TeamMatchParticipation";
 
 export const MatchGQL: GraphQLObjectType = new GraphQLObjectType({
     name: "Match",
@@ -65,28 +67,12 @@ export function singleSeasonScoreAwareMatchLoader<
     includeScores ||= info.some((i) => "scores" in graphqlFields(i));
     includeTeams ||= info.some((i) => "teams" in graphqlFields(i));
     includeVideos ||= info.some((i) => "videos" in graphqlFields(i));
-    let season = keys[0].eventSeason;
+    let season = keys[0].eventSeason as Season;
 
     let q = DATA_SOURCE.getRepository(Match)
         .createQueryBuilder("m")
         .where(keyListToWhereClause("m", keys));
 
-    if (includeScores) {
-        q.leftJoinAndMapMany(
-            "m.scores",
-            `match_score_${season}`,
-            "ms",
-            "m.event_season = ms.season AND m.event_code = ms.event_code AND m.id = ms.match_id"
-        );
-    }
-    if (includeTeams) {
-        q.leftJoinAndMapMany(
-            "m.teams",
-            "team_match_participation",
-            "tmp",
-            "m.event_season = tmp.season AND m.event_code = tmp.event_code AND m.id = tmp.match_id"
-        );
-    }
     if (includeVideos) {
         q.leftJoinAndMapMany(
             "m.videos",
@@ -96,5 +82,51 @@ export function singleSeasonScoreAwareMatchLoader<
         );
     }
 
-    return q.getMany();
+    return q.getMany().then(async (matches) => {
+        if (matches.length === 0) return matches;
+
+        const matchKey = (eventSeason: Season, eventCode: string, id: number) =>
+            `${eventSeason}:${eventCode}:${id}`;
+        const matchMap = new Map(
+            matches.map((m) => [matchKey(m.eventSeason, m.eventCode, m.id), m])
+        );
+
+        if (includeScores) {
+            for (const match of matches) {
+                match.scores = [];
+            }
+
+            const scoreKeys = keys.map((k) => ({
+                season: k.eventSeason,
+                eventCode: k.eventCode!,
+                matchId: k.id!,
+            }));
+            const scores = await MatchScore[season].find({ where: scoreKeys });
+
+            for (const score of scores) {
+                matchMap
+                    .get(matchKey(score.season, score.eventCode, score.matchId))
+                    ?.scores.push(score);
+            }
+        }
+
+        if (includeTeams) {
+            for (const match of matches) {
+                match.teams = [];
+            }
+
+            const teamKeys = keys.map((k) => ({
+                season: k.eventSeason,
+                eventCode: k.eventCode!,
+                matchId: k.id!,
+            }));
+            const teams = await TeamMatchParticipation.find({ where: teamKeys });
+
+            for (const team of teams) {
+                matchMap.get(matchKey(team.season, team.eventCode, team.matchId))?.teams.push(team);
+            }
+        }
+
+        return matches;
+    });
 }

@@ -4,7 +4,8 @@ import { getData } from "$lib/graphql/getData";
 import { CURRENT_SEASON } from "@ftc-scout/common";
 import type { Load } from "@sveltejs/kit";
 
-export const load: Load = async ({ fetch }) => {
+export const load: Load = async ({ fetch, parent }) => {
+    const parentData = await parent();
     let home = await getData(getClient(fetch), HomePageDocument, { season: CURRENT_SEASON });
-    return { home };
+    return { home, ...parentData };
 };

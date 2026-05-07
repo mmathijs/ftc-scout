@@ -43,3 +43,26 @@ export function sendAnalyticsRequest(navigate: AfterNavigate) {
         lastRest = rest;
     }
 }
+
+export function trackEventView(season: string | number, eventCode: string, pageType: string) {
+    if (browser && window.plausible) {
+        window.plausible("Event Page View", {
+            props: {
+                season: season + "",
+                event_code: eventCode,
+                page_type: pageType,
+            },
+        });
+    }
+}
+
+export function trackTeamView(teamNumber: string | number, season: string | number) {
+    if (browser && window.plausible) {
+        window.plausible("Team Page View", {
+            props: {
+                team: teamNumber + "",
+                season: season + "",
+            },
+        });
+    }
+}

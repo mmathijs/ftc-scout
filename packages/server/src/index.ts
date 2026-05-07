@@ -18,14 +18,47 @@ import { setupRest } from "./rest/setupRest";
 import { createServer } from "http";
 import { WebSocketServer } from "ws";
 import { useServer } from "graphql-ws/lib/use/ws";
+import { ApolloServerPluginUsageReporting } from "@apollo/server/plugin/usageReporting";
 import { ApolloServerPluginDrainHttpServer } from "@apollo/server/plugin/drainHttpServer";
 import { setupSiteMap } from "./sitemap/setupSitemap";
 import { InMemoryLRUCache } from "@apollo/utils.keyvaluecache";
+import {
+    rebuildQuickStatsMaterializedViews,
+    refreshQuickStatsMaterializedViews,
+} from "./db/quickstats-materialized-view";
 import { responseCachePlugin } from "./graphql/plugins/response-cache-plugin";
+
+// Logs GraphQL request timing server-side for queries/mutations/subscriptions.
+const graphqlTimingPlugin = {
+    async requestDidStart(requestContext: { request: { operationName?: string | null } }) {
+        const startedAt = Date.now();
+        const operationName = requestContext.request.operationName ?? "anonymous";
+
+        return {
+            async didResolveOperation(ctx: { operation?: { operation?: string } }) {
+                const operationType = ctx.operation?.operation ?? "unknown";
+                console.info(`[GraphQL] start ${operationType} ${operationName}`);
+            },
+            async willSendResponse(ctx: { operation?: { operation?: string } }) {
+                const operationType = ctx.operation?.operation ?? "unknown";
+                const durationMs = Date.now() - startedAt;
+                console.info(`[GraphQL] done ${operationType} ${operationName} in ${durationMs}ms`);
+            },
+            async didEncounterErrors(ctx: { operation?: { operation?: string } }) {
+                const operationType = ctx.operation?.operation ?? "unknown";
+                const durationMs = Date.now() - startedAt;
+                console.warn(
+                    `[GraphQL] error ${operationType} ${operationName} after ${durationMs}ms`
+                );
+            },
+        };
+    },
+};
 
 async function main() {
     await DATA_SOURCE.initialize();
     initDynamicEntities();
+    await rebuildQuickStatsMaterializedViews();
 
     let app = express();
 
@@ -53,6 +86,9 @@ async function main() {
         maxSize: Math.pow(2, 20) * 100, // ~100MiB
         ttl: 120, // Default 2 minutes for APQ
     });
+    let isDev = process.env.NODE_ENV === "development" || !process.env.NODE_ENV;
+
+    let globalVersionBasedOnTime = new Date().getTime().toFixed();
 
     let apolloServer = new ApolloServer({
         introspection: true,
@@ -67,8 +103,25 @@ async function main() {
                 footer: false,
                 embed: { runTelemetry: false, endpointIsEditable: false },
             }),
-            responseCachePlugin(serverCache),
             ApolloServerPluginDrainHttpServer({ httpServer }),
+            ...(!isDev
+                ? [
+                      responseCachePlugin(serverCache),
+                      ApolloServerPluginUsageReporting({
+                          generateClientInfo({ request }) {
+                              return {
+                                  clientName:
+                                      request.http?.headers.get("apollographql-client-name") ??
+                                      "MMathijs-FTCSCOUT-SERVER",
+                                  clientVersion:
+                                      request.http?.headers.get("apollographql-client-version") ??
+                                      globalVersionBasedOnTime,
+                              };
+                          },
+                      }),
+                  ]
+                : []),
+            graphqlTimingPlugin,
             {
                 async serverWillStart() {
                     return {
@@ -97,8 +150,10 @@ async function main() {
     });
 
     if (SYNC_API) {
-        await fetchPriorSeasons();
-        await watchApi();
+        fetchPriorSeasons().then(async () => {
+            await refreshQuickStatsMaterializedViews(true);
+            await watchApi();
+        });
     }
 }
 

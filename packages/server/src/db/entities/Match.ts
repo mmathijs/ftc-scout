@@ -13,6 +13,7 @@ import {
     DeepPartial,
     Entity,
     ManyToOne,
+    OneToMany,
     PrimaryColumn,
     UpdateDateColumn,
 } from "typeorm";
@@ -39,6 +40,7 @@ export class Match extends BaseEntity {
 
     scores!: MatchScore[];
 
+    @OneToMany(() => TeamMatchParticipation, (p) => p.match)
     teams!: TeamMatchParticipation[];
 
     videos!: Video[];

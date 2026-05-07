@@ -39,6 +39,7 @@
     export let focusedTeam: number | null = null;
     export let showNonPenaltyScores = false;
     export let showHeartLegend = true;
+    export let overrideTeamCount: number | null = null;
 
     $: timeZone = event.timezone;
     $: remote = event.remote;
@@ -60,6 +61,14 @@
     $: anyDq = matches.some((m) => m.teams.some((t) => t.dq));
 
     $: teamCount = new Set(matches.flatMap((m) => m.teams.map((t) => t.teamNumber))).size;
+    function allianceCountFromTeams(teamCount: number): number {
+        if (teamCount <= 0) return 0;
+        if (teamCount <= 10) return 2;
+        if (teamCount <= 20) return 4;
+        if (teamCount <= 40) return 6;
+        return 8;
+    }
+    $: allianceCount = allianceCountFromTeams(overrideTeamCount ?? teamCount);
 
     //TODO MAKE THIS DYNAMIC SOMEHOW, the 1 is for team page, keep that
     $: roundRobinAllianceCount = false ? 1 : 6;
@@ -138,7 +147,7 @@
                         {timeZone}
                         {focusedTeam}
                         zebraStripe={i % 2 == 1}
-                        {teamCount}
+                        {allianceCount}
                         {showNonPenaltyScores}
                     />
                 {/each}
@@ -167,7 +176,7 @@
                         {season}
                         {timeZone}
                         {focusedTeam}
-                        teamCount={roundRobinAllianceCount}
+                        allianceCount={roundRobinAllianceCount}
                         zebraStripe={i % 2 == 1}
                         {showNonPenaltyScores}
                     />
