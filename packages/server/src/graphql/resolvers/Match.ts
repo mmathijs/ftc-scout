@@ -73,8 +73,6 @@ export function singleSeasonScoreAwareMatchLoader<
         .createQueryBuilder("m")
         .where(keyListToWhereClause("m", keys));
 
-    q.addOrderBy("m.match_id", "ASC");
-
     if (includeVideos) {
         q.leftJoinAndMapMany(
             "m.videos",
@@ -83,6 +81,8 @@ export function singleSeasonScoreAwareMatchLoader<
             "m.event_season = v.event_season AND m.event_code = v.event_code AND m.id = v.match_id"
         );
     }
+
+    q.addOrderBy("m.id", "ASC");
 
     return q.getMany().then(async (matches) => {
         if (matches.length === 0) return matches;
