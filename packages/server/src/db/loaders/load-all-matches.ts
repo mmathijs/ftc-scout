@@ -89,7 +89,7 @@ export async function loadAllMatches(season: Season, loadType: LoadType) {
                             official: true,
                             source: VideoSource.FTCEvents,
                             url: match.videoURL,
-                            title: `${match.tournamentLevel} ${match.series}-${match.matchNumber}`,
+                            title: `FTC-Events`,
                         })
                     );
                 }
