@@ -17,7 +17,7 @@
     import type { ApolloQueryResult } from "@apollo/client";
     import type { Readable } from "svelte/store";
     import Select from "$lib/components/ui/form/Select.svelte";
-    import AlertBar from "$lib/components/nav/AlertBar.svelte";
+    // import AlertBar from "$lib/components/nav/AlertBar.svelte";
 
     export let data: {
         home: Readable<ApolloQueryResult<HomePageQuery>>;
@@ -135,10 +135,10 @@
 
 <Head title="BETA FTCScout | Advancement + Leagues + QOL features | May be unstable" />
 
-<AlertBar
+<!-- <AlertBar
     message="Watch the FTC World Championships live on YouTube!"
     link="https://www.youtube.com/watch?v=abjNLBFk1N8"
-/>
+/> -->
 
 <WidthProvider>
     <Card vis={false}>
