@@ -34,6 +34,7 @@ const SUPPORTED_EVENT_TYPES: EventType[] = [
     EventType.SuperQualifier,
     EventType.Championship,
     EventType.FIRSTChampionship,
+    EventType.Premier,
 ];
 
 const QUALIFYING_EVENT_TYPES: EventType[] = [
