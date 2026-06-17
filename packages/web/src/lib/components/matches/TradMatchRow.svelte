@@ -78,6 +78,25 @@
                     (series == 14 && alliance == Alliance.Blue) ||
                     series == 15
                 );
+            case 16:
+                return (
+                    series == 9 ||
+                    series == 10 ||
+                    series == 11 ||
+                    series == 12 ||
+                    series == 17 ||
+                    series == 18 ||
+                    series == 19 ||
+                    series == 20 ||
+                    series == 23 ||
+                    series == 24 ||
+                    series == 25 ||
+                    series == 26 ||
+                    series == 28 ||
+                    series == 29 ||
+                    (series == 30 && alliance == Alliance.Blue) ||
+                    series == 31
+                );
             default:
                 return false;
         }

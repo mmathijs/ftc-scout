@@ -46,15 +46,19 @@
 
 <div class="container">
     <p>Sponsored by</p>
-    <!-- Dark Mode -->
-    <a class="dark render-dark" href="https://www.offsetrobotics.com/" target="_blank">
-        <img src="/img/offsetlogo_dark.png" alt="Offset Robotics Logo" />
+    <a class="dark" href="https://www.offsetrobotics.com/" target="_blank">
+        <img src="/img/offsetjpeg.jpg" alt="Offset Robotics Logo" />
     </a>
 
+    <!-- Dark Mode -->
+    <!-- <a class="dark render-dark" href="https://www.offsetrobotics.com/" target="_blank">
+        <img src="/img/offsetlogo_dark.png" alt="Offset Robotics Logo" />
+    </a> -->
+
     <!-- Light Mode -->
-    <a class="light render-light" href="https://www.offsetrobotics.com/" target="_blank">
+    <!-- <a class="light render-light" href="https://www.offsetrobotics.com/" target="_blank">
         <img src="/img/offsetlogo_light.png" alt="Offset Robotics Logo" />
-    </a>
+    </a> -->
 </div>
 
 <style>
