@@ -23,6 +23,9 @@ export class DataHasBeenLoaded extends BaseEntity {
     matches!: boolean;
 
     @Column({ default: false })
+    alliances!: boolean;
+
+    @Column({ default: false })
     awards!: boolean;
 
     @CreateDateColumn({ type: "timestamptz" })
@@ -37,6 +40,10 @@ export class DataHasBeenLoaded extends BaseEntity {
 
     static async eventsHaveBeenLoaded(season: Season): Promise<boolean> {
         return (await DataHasBeenLoaded.findOneBy({ season }))?.events ?? false;
+    }
+
+    static async alliancesHaveBeenLoaded(season: Season): Promise<boolean> {
+        return (await DataHasBeenLoaded.findOneBy({ season }))?.alliances ?? false;
     }
 
     static async matchesHaveBeenLoaded(season: Season): Promise<boolean> {
