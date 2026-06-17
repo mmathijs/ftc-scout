@@ -52,7 +52,7 @@
                 (series == 10 && alliance == Alliance.Blue) ||
                 series == 11
             );
-        } else {
+        } else if (teamCount <= 64) {
             return (
                 series == 5 ||
                 series == 6 ||
@@ -62,6 +62,26 @@
                 series == 13 ||
                 (series == 14 && alliance == Alliance.Blue) ||
                 series == 15
+            );
+        } else {
+            // 16 alliance playoffs
+            return (
+                series == 9 ||
+                series == 10 ||
+                series == 11 ||
+                series == 12 ||
+                series == 17 ||
+                series == 18 ||
+                series == 19 ||
+                series == 20 ||
+                series == 23 ||
+                series == 24 ||
+                series == 25 ||
+                series == 26 ||
+                series == 28 ||
+                series == 29 ||
+                (series == 30 && alliance == Alliance.Blue) ||
+                series == 31
             );
         }
     }
