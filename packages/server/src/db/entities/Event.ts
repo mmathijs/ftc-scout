@@ -337,6 +337,34 @@ export class Event extends BaseEntity {
                         liveStreamURL: "https://www.youtube.com/watch?v=oG0JzHFcf5A",
                     },
                 ],
+                FPEEURLOVE: [
+                    {
+                        day: new Date("2026-06-18"),
+                        liveStreamURL: "https://youtube.com/live/ro7OQZH0egI",
+                    },
+                    {
+                        day: new Date("2026-06-19"),
+                        liveStreamURL: "https://youtube.com/live/4aqwl3Eb6h4",
+                    },
+                    {
+                        day: new Date("2026-06-20"),
+                        liveStreamURL: "https://youtube.com/live/qMxXAQ7rBXc",
+                    },
+                ],
+                FPEEURESCH: [
+                    {
+                        day: new Date("2026-06-18"),
+                        liveStreamURL: "https://youtube.com/live/HXRm9RecgZo",
+                    },
+                    {
+                        day: new Date("2026-06-19"),
+                        liveStreamURL: "https://youtube.com/live/xwDVXQMqml0",
+                    },
+                    {
+                        day: new Date("2026-06-20"),
+                        liveStreamURL: "https://youtube.com/live/RcxnKlZRzqg",
+                    },
+                ],
             },
         };
 
