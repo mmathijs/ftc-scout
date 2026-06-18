@@ -75,6 +75,12 @@ export class Event extends BaseEntity {
     @Column()
     city!: string;
 
+    @Column({ type: "float", nullable: true })
+    latitude!: number | null;
+
+    @Column({ type: "float", nullable: true })
+    longitude!: number | null;
+
     @Column({ type: "varchar", nullable: true })
     website!: string | null;
 
@@ -98,6 +104,15 @@ export class Event extends BaseEntity {
 
     @Column()
     modifiedRules!: boolean;
+
+    @Column("int", { nullable: true })
+    advancementSlots!: number | null;
+
+    @Column({ type: "varchar", nullable: true })
+    advancesTo!: string | null;
+
+    @Column("int", { nullable: true })
+    fcmpReserved!: number | null;
 
     @CreateDateColumn({ type: "timestamptz" })
     createdAt!: Date;
@@ -337,6 +352,34 @@ export class Event extends BaseEntity {
                         liveStreamURL: "https://www.youtube.com/watch?v=oG0JzHFcf5A",
                     },
                 ],
+                FPEEURLOVE: [
+                    {
+                        day: new Date("2026-06-18"),
+                        liveStreamURL: "https://youtube.com/live/ro7OQZH0egI",
+                    },
+                    {
+                        day: new Date("2026-06-19"),
+                        liveStreamURL: "https://youtube.com/live/4aqwl3Eb6h4",
+                    },
+                    {
+                        day: new Date("2026-06-20"),
+                        liveStreamURL: "https://youtube.com/live/qMxXAQ7rBXc",
+                    },
+                ],
+                FPEEURESCH: [
+                    {
+                        day: new Date("2026-06-18"),
+                        liveStreamURL: "https://youtube.com/live/HXRm9RecgZo",
+                    },
+                    {
+                        day: new Date("2026-06-19"),
+                        liveStreamURL: "https://youtube.com/live/xwDVXQMqml0",
+                    },
+                    {
+                        day: new Date("2026-06-20"),
+                        liveStreamURL: "https://youtube.com/live/RcxnKlZRzqg",
+                    },
+                ],
             },
         };
 
@@ -360,6 +403,8 @@ export class Event extends BaseEntity {
             country: fixLocations(api.country),
             state: fixLocations(api.stateprov),
             city: fixLocations(api.city),
+            latitude: api.coordinates?.coordinates[1] ?? null,
+            longitude: api.coordinates?.coordinates[0] ?? null,
             website: api.website ? api.website.trim() : null,
             liveStreamURL:
                 api.liveStreamUrl && api.liveStreamUrl.startsWith("https://")
@@ -374,3 +419,5 @@ export class Event extends BaseEntity {
         } satisfies DeepPartial<Event>);
     }
 }
+
+export default Event;

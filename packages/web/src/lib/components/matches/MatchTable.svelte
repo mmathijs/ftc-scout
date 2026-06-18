@@ -1,6 +1,9 @@
 <script lang="ts" context="module">
     export const SHOW_MATCH_SCORE = {};
     export type ShowMatchFn = (match: FullMatchFragment) => void;
+    export const SHOW_MATCH_VIDEO = {};
+    export type ShowMatchVideoFn = (match: FullMatchFragment) => void;
+    export const SHOW_EVENT_HAS_VIDEOS = {};
 </script>
 
 <script lang="ts">
@@ -17,6 +20,7 @@
     import RemoteMatches from "./RemoteMatches.svelte";
     import { page } from "$app/stores";
     import ScoreModal from "./score-modal/ScoreModal.svelte";
+    import VideoModal from "./VideoModal.svelte";
     import { setContext } from "svelte";
     import { queryParam } from "../../util/search-params/search-params";
     import { faHeart, faHeartBroken } from "@fortawesome/free-solid-svg-icons";
@@ -35,6 +39,7 @@
     export let focusedTeam: number | null = null;
     export let showNonPenaltyScores = false;
     export let showHeartLegend = true;
+    export let overrideTeamCount: number | null = null;
 
     $: timeZone = event.timezone;
     $: remote = event.remote;
@@ -47,6 +52,8 @@
         .filter((m) => m.tournamentLevel == TournamentLevel.Finals)
         .sort(matchSorter);
     $: doubleElim = matches.filter((m) => m.tournamentLevel == TournamentLevel.DoubleElim);
+    $: roundRobin = matches.filter((m) => m.tournamentLevel == TournamentLevel.RoundRobin);
+    $: hasAnyVideos = matches.some((m) => ((m as any).videos ?? []).length > 0);
 
     $: soloMatches = groupBy(matches, (m) => m.id - (m.id % 1000));
 
@@ -54,9 +61,22 @@
     $: anyDq = matches.some((m) => m.teams.some((t) => t.dq));
 
     $: teamCount = new Set(matches.flatMap((m) => m.teams.map((t) => t.teamNumber))).size;
+    function allianceCountFromTeams(teamCount: number): number {
+        if (teamCount <= 0) return 0;
+        if (teamCount <= 10) return 2;
+        if (teamCount <= 20) return 4;
+        if (teamCount <= 40) return 6;
+        return 8;
+    }
+    $: allianceCount = allianceCountFromTeams(overrideTeamCount ?? teamCount);
+
+    //TODO MAKE THIS DYNAMIC SOMEHOW, the 1 is for team page, keep that
+    $: roundRobinAllianceCount = false ? 1 : 6;
 
     let modalShown = false;
     let modalMatch: FullMatchFragment | null;
+    let videoModalShown = false;
+    let videoModalMatch: FullMatchFragment | null;
 
     function show(match: FullMatchFragment) {
         modalMatch = match;
@@ -64,7 +84,14 @@
         modalShown = true;
     }
 
+    function showVideo(match: FullMatchFragment) {
+        videoModalMatch = match;
+        videoModalShown = true;
+    }
+
     setContext(SHOW_MATCH_SCORE, show);
+    setContext(SHOW_MATCH_VIDEO, showVideo);
+    setContext(SHOW_EVENT_HAS_VIDEOS, () => hasAnyVideos);
 
     let modalMatchId = queryParam<[string, number] | null>("scores", {
         encode: (m) => (m ? `${m[0]}-${m[1]}` : null),
@@ -87,6 +114,7 @@
     on:close={() => ($modalMatchId = null)}
 />
 
+<VideoModal bind:shown={videoModalShown} bind:match={videoModalMatch} />
 <table class:remote>
     {#if remote}
         <RemoteMatchTableHeader />
@@ -119,7 +147,7 @@
                         {timeZone}
                         {focusedTeam}
                         zebraStripe={i % 2 == 1}
-                        {teamCount}
+                        {allianceCount}
                         {showNonPenaltyScores}
                     />
                 {/each}
@@ -133,6 +161,22 @@
                         {season}
                         {timeZone}
                         {focusedTeam}
+                        zebraStripe={i % 2 == 1}
+                        {showNonPenaltyScores}
+                    />
+                {/each}
+                {#if roundRobin.length}
+                    <SectionRow name={"Round Robin"} />
+                {/if}
+                <!--TODO Make teamcount alliance count or something-->
+                {#each roundRobin as match, i}
+                    <TradMatchRow
+                        {match}
+                        {eventCode}
+                        {season}
+                        {timeZone}
+                        {focusedTeam}
+                        allianceCount={roundRobinAllianceCount}
                         zebraStripe={i % 2 == 1}
                         {showNonPenaltyScores}
                     />
@@ -195,12 +239,17 @@
 
 {#if showHeartLegend && doubleElim.length > 0}
     <div style:margin-top="var(--md-gap)" style="display: flex; gap: var(--vl-gap)">
-        <div><Fa icon={faHeart} style="color: var(--red-team-color)" /> Elimination Remaining</div>
         <div>
-            <Fa icon={faHeartBroken} style="color: var(--grayed-out-text-color)" /> Lost This Match
+            <Fa icon={faHeart} style="color: var(--red-team-color)" />
+            Elimination Remaining
         </div>
         <div>
-            <Fa icon={faHeartOutline} style="color: var(--grayed-out-text-color)" /> Lost Previous Match
+            <Fa icon={faHeartBroken} style="color: var(--grayed-out-text-color)" />
+            Lost This Match
+        </div>
+        <div>
+            <Fa icon={faHeartOutline} style="color: var(--grayed-out-text-color)" />
+            Lost Previous Match
         </div>
     </div>
 {/if}
@@ -221,9 +270,11 @@
         border-bottom-left-radius: 7px;
         border-bottom-right-radius: 7px;
     }
+
     table tbody :global(tr:last-child) :global(td:first-child) {
         border-bottom-left-radius: 7px;
     }
+
     table tbody :global(tr:last-child) :global(td:last-child) {
         border-bottom-right-radius: 7px;
     }

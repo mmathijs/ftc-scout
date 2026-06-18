@@ -22,10 +22,14 @@ import {
     TeamEventParticipation,
     TeamEventParticipationSchemas as TepSchemas,
 } from "../entities/dyn/team-event-participation";
+import { recomputeLeagueRankings } from "./recompute-league-rankings";
 import { exit } from "process";
 import { IS_DEV } from "../../constants";
 import { newMatchesKey, pubsub } from "../../graphql/resolvers/pubsub";
 import { removeStaleMatches } from "./remove-stale-matches";
+import { computeAdvancementForEvent } from "./compute-advancement";
+import { refreshQuickStatsMaterializedView } from "../quickstats-materialized-view";
+import { Video, VideoSource } from "../entities/Video";
 
 const IGNORED_MATCHES = [
     //cSpell:disable
@@ -44,10 +48,21 @@ function isIgnored(season: Season, eCode: string, m: MatchFtcApi): boolean {
     );
 }
 
+type LeagueKey = {
+    leagueCode: string;
+    regionCode: string | null;
+};
+
+function toLeagueKey(code: string, regionCode: string | null): string {
+    return `${code}::${regionCode ?? ""}`;
+}
+
 export async function loadAllMatches(season: Season, loadType: LoadType) {
     console.info(`Loading matches for season ${season}. (${loadType})`);
 
     let events = await eventsToFetch(season, loadType);
+    let leaguesToRecompute = new Map<string, LeagueKey>();
+    let advancementToRecompute = new Set<string>();
 
     console.info(`Got ${events.length} events to fetch.`);
 
@@ -79,6 +94,21 @@ export async function loadAllMatches(season: Season, loadType: LoadType) {
                         ? [] // Remote matches that weren't played still return scores
                         : theseScores.flatMap((s) => MatchScore.fromApi(s, dbMatch, event.remote));
 
+                if (!dbMatch.videos) {
+                    dbMatch.videos = [];
+                }
+
+                if (match.videoURL) {
+                    dbMatch.videos.push(
+                        Video.create({
+                            official: true,
+                            source: VideoSource.FTCEvents,
+                            url: match.videoURL,
+                            title: `FTC-Events`,
+                        })
+                    );
+                }
+
                 dbMatch.teams = dbTmps;
                 dbMatch.scores = dbScores;
 
@@ -102,6 +132,12 @@ export async function loadAllMatches(season: Season, loadType: LoadType) {
             );
             await DATA_SOURCE.transaction(async (em) => {
                 await em.save(allDbMatches, { chunk: 100 });
+
+                const allVideos = createVideosForMatches(allDbMatches);
+                if (allVideos.length) {
+                    await em.getRepository(Video).save(allVideos, { chunk: 100 });
+                }
+
                 await em.save(allDbTmps, { chunk: 500 });
                 await em.getRepository(MatchScoreSchemas[season]).save(allDbScores, { chunk: 100 });
                 await em.getRepository(TepSchemas[season]).save(allDbTeps, { chunk: 100 });
@@ -124,6 +160,16 @@ export async function loadAllMatches(season: Season, loadType: LoadType) {
             });
 
             publishMatchUpdates(updatedMatches);
+            if (event.leagueCode && updatedMatches.length > 0) {
+                leaguesToRecompute.set(toLeagueKey(event.leagueCode, event.regionCode ?? null), {
+                    leagueCode: event.leagueCode,
+                    regionCode: event.regionCode ?? null,
+                });
+            }
+
+            if (season >= Season.Decode && updatedMatches.length > 0) {
+                advancementToRecompute.add(event.code);
+            }
 
             console.info(`Loaded ${i + 1}/${events.length}.`);
         } catch (e) {
@@ -135,6 +181,19 @@ export async function loadAllMatches(season: Season, loadType: LoadType) {
             }
         }
     }
+
+    console.info("Leagues to recompute:", leaguesToRecompute.size);
+    for (let { leagueCode, regionCode } of leaguesToRecompute.values()) {
+        await recomputeLeagueRankings(season, leagueCode, regionCode);
+    }
+
+    console.info("Advancements to recompute:", advancementToRecompute.size);
+    for (let eventCode of advancementToRecompute) {
+        await computeAdvancementForEvent(season, eventCode);
+    }
+
+    console.log("Recomputing Materialized Views...");
+    await refreshQuickStatsMaterializedView(season, false);
 
     await DataHasBeenLoaded.create({
         season,
@@ -163,7 +222,14 @@ async function eventsToFetch(season: Season, loadType: LoadType) {
     if (loadType == LoadType.Full) {
         return DATA_SOURCE.getRepository(Event)
             .createQueryBuilder("e")
-            .select(["e.season", "e.code", "e.remote", "e.timezone"])
+            .select([
+                "e.season",
+                "e.code",
+                "e.remote",
+                "e.timezone",
+                "e.leagueCode",
+                "e.regionCode",
+            ])
             .distinct(true)
             .leftJoin(Match, "m", "e.season = m.event_season AND e.code = m.event_code")
             .leftJoin(
@@ -179,7 +245,14 @@ async function eventsToFetch(season: Season, loadType: LoadType) {
     } else {
         return DATA_SOURCE.getRepository(Event)
             .createQueryBuilder("e")
-            .select(["e.season", "e.code", "e.remote", "e.timezone"])
+            .select([
+                "e.season",
+                "e.code",
+                "e.remote",
+                "e.timezone",
+                "e.leagueCode",
+                "e.regionCode",
+            ])
             .distinct(true)
             .where("season = :season", { season })
             .andWhere("start <= (NOW() at time zone timezone)::date")
@@ -196,4 +269,17 @@ function publishMatchUpdates(matches: Match[]) {
         let eMatches = grouped[eventCode];
         pubsub.publish(newMatchesKey(matches[0].eventSeason, eventCode), { newMatches: eMatches });
     }
+}
+
+function createVideosForMatches(matches: Match[]): Video[] {
+    const videos: Video[] = [];
+    for (const m of matches) {
+        if (!m.videos || !m.videos.length) continue;
+
+        for (const v of m.videos) {
+            (v as any).match = m;
+            videos.push(v);
+        }
+    }
+    return videos;
 }

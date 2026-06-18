@@ -2,7 +2,6 @@ import { GraphQLFieldConfig, GraphQLInt, GraphQLObjectType } from "graphql";
 import { dataLoaderResolverList, dataLoaderResolverSingle } from "../utils";
 import {
     ALL_SEASONS,
-    DESCRIPTORS,
     DateTimeTy,
     FloatTy,
     IntTy,
@@ -29,7 +28,7 @@ import { TeamEventParticipation } from "../../db/entities/dyn/team-event-partici
 import { TeamEventParticipationGQL } from "./TeamEventParticipation";
 import { RegionOptionGQL } from "./enums";
 import { DATA_SOURCE } from "../../db/data-source";
-import { Event } from "../../db/entities/Event";
+import { getQuickStatsViewName } from "../../db/quickstats-materialized-view";
 
 const QuickStatGQL = new GraphQLObjectType({
     name: "QuickStat",
@@ -55,6 +54,7 @@ let cachedQSCount: Partial<Record<Season, { count: number; time: number }>> = {}
 let cacheTime = 1000 * 60 * 5; // 5 minutes
 
 async function getQuickStatCount(season: Season, region: RegionOption | null) {
+    let view = getQuickStatsViewName(season);
     let specialRegion = region && region != RegionOption.All;
 
     let cached = cachedQSCount[season];
@@ -62,19 +62,21 @@ async function getQuickStatCount(season: Season, region: RegionOption | null) {
         return cached.count;
     }
 
-    let q = DATA_SOURCE.createQueryBuilder(`tep_${season}`, "t")
-        .leftJoin("event", "e", "e.season = t.season AND e.code = t.event_code")
-        .select("count(distinct team_number)")
-        .where("NOT is_remote")
-        .andWhere("has_stats")
-        .andWhere("NOT e.modified_rules");
-
-    if (region && region != RegionOption.All) {
-        q.andWhere("region_code IN (:...regions)", { regions: getRegionCodes(region) });
+    let count: number;
+    if (specialRegion) {
+        let q = DATA_SOURCE.createQueryBuilder()
+            .from(view, "qs")
+            .select("count(*)", "count")
+            .where("region_code IN (:...regions)", { regions: getRegionCodes(region!) });
+        let raw = await q.getRawOne();
+        count = +raw.count;
+    } else {
+        let q = DATA_SOURCE.createQueryBuilder()
+            .from(view, "qs")
+            .select("max(team_count)", "count");
+        let raw = await q.getRawOne();
+        count = +(raw?.count ?? 0);
     }
-
-    let raw = await q.getRawOne();
-    let count = +raw.count;
 
     if (!specialRegion) {
         cachedQSCount[season] = { count, time: Date.now() };
@@ -84,50 +86,34 @@ async function getQuickStatCount(season: Season, region: RegionOption | null) {
 }
 
 export async function getQuickStats(number: number, season: Season, region: RegionOption | null) {
-    let total = DESCRIPTORS[season].pensSubtract ? "total_points" : "total_points_np";
-    let max = DATA_SOURCE.createQueryBuilder(`tep_${season}`, "t")
-        .leftJoin("event", "e", "e.season = t.season AND e.code = t.event_code")
-        .select("team_number")
-        .addSelect(`max(opr_${total})`, "tot")
-        .addSelect("max(opr_auto_points)", "auto")
-        .addSelect("max(opr_dc_points)", "dc");
+    let view = getQuickStatsViewName(season);
+    let specialRegion = region && region != RegionOption.All;
 
-    // HELP: Season Specific
-    let egColumn = "opr_eg_points";
-    if (season == Season.IntoTheDeep) {
-        egColumn = "opr_dc_park_points";
-    } else if (season == Season.Decode) {
-        egColumn = "opr_dc_base_points";
+    let res;
+    if (specialRegion) {
+        // Preserve current semantics: ranks are computed within the filtered region scope.
+        let ranked = DATA_SOURCE.createQueryBuilder()
+            .from(view, "qs")
+            .select("*")
+            .addSelect("rank() over (order by tot DESC)", "tot_rank")
+            .addSelect("rank() over (order by auto DESC)", "auto_rank")
+            .addSelect("rank() over (order by dc DESC)", "dc_rank")
+            .addSelect("rank() over (order by eg DESC)", "eg_rank")
+            .where("region_code IN (:...regions)", { regions: getRegionCodes(region!) });
+
+        res = await DATA_SOURCE.createQueryBuilder()
+            .addCommonTableExpression(ranked, "region_ranked")
+            .from("region_ranked", "ranks")
+            .select("*")
+            .where("team_number = :number", { number })
+            .getRawOne();
+    } else {
+        res = await DATA_SOURCE.createQueryBuilder()
+            .from(view, "qs")
+            .select("*")
+            .where("team_number = :number", { number })
+            .getRawOne();
     }
-    max = max.addSelect(`max(${egColumn})`, "eg");
-
-    max = max
-        .where("NOT is_remote")
-        .andWhere("has_stats")
-        .andWhere("NOT e.modified_rules")
-        .groupBy("team_number");
-
-    if (region && region != RegionOption.All) {
-        max.andWhere("region_code IN (:...regions)", {
-            regions: getRegionCodes(region),
-        });
-    }
-
-    let ranks = DATA_SOURCE.createQueryBuilder()
-        .from("max", "max")
-        .select("*")
-        .addSelect("rank() over (order by tot DESC)", "tot_rank")
-        .addSelect("rank() over (order by auto DESC)", "auto_rank")
-        .addSelect("rank() over (order by dc DESC)", "dc_rank")
-        .addSelect("rank() over (order by eg DESC)", "eg_rank");
-
-    let res = await DATA_SOURCE.createQueryBuilder()
-        .addCommonTableExpression(max, "max")
-        .addCommonTableExpression(ranks, "ranks")
-        .from("ranks", "ranks")
-        .select("*")
-        .where("team_number = :number", { number })
-        .getRawOne();
 
     if (!res) return null;
 
@@ -277,11 +263,9 @@ export const TeamQueries: Record<string, GraphQLFieldConfig<any, any>> = {
             let q = DATA_SOURCE.getRepository(Team).createQueryBuilder("t").distinctOn(["number"]);
 
             if (region && region != RegionOption.All) {
-                q.leftJoin(TeamMatchParticipation, "m", "t.number = m.team_number")
-                    .leftJoin(Event, "e", "e.season = m.season AND e.code = m.event_code")
-                    .andWhere("e.region_code IN (:...regions)", {
-                        regions: getRegionCodes(region),
-                    });
+                q.andWhere("t.region_code IN (:...regions)", {
+                    regions: getRegionCodes(region),
+                });
             }
 
             if (limit && (!searchText || searchText.trim() == "")) {

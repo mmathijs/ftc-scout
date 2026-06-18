@@ -34,6 +34,7 @@
             "tournamentLevel": "Quals",
             "scheduledStartTime": "2022-02-26T17:40:00.000Z",
             "actualStartTime": "2022-02-26T19:13:12.609Z",
+            "videos": [],
             "scores": {
                 "__typename": "MatchScores2021Trad",
                 "season": 2021,

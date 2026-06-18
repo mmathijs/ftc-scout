@@ -1,14 +1,22 @@
 <script lang="ts">
     import {
         Alliance,
-        TournamentLevel,
         type FullMatchFragment,
+        TournamentLevel,
     } from "../../graphql/generated/graphql-operations";
     import { sortTeams } from "../../util/sorters";
     import DeLives from "./DELives.svelte";
     import MatchScore, { computeWinner } from "./MatchScore.svelte";
     import MatchTeam from "./MatchTeam.svelte";
     import PlaceholderMatchTeam from "./PlaceholderMatchTeam.svelte";
+    import { getContext } from "svelte";
+    import Fa from "svelte-fa";
+    import { faCirclePlay } from "@fortawesome/free-regular-svg-icons";
+    import {
+        SHOW_MATCH_VIDEO,
+        type ShowMatchVideoFn,
+        SHOW_EVENT_HAS_VIDEOS,
+    } from "./MatchTable.svelte";
 
     export let match: FullMatchFragment;
     export let eventCode: string;
@@ -16,8 +24,8 @@
     export let timeZone: string;
     export let focusedTeam: number | null;
     export let zebraStripe: boolean;
-    export let teamCount = 0;
     export let showNonPenaltyScores = false;
+    export let allianceCount = 0;
 
     $: teams = match.teams;
     $: redTeams = teams.filter((t) => t.alliance == Alliance.Red);
@@ -29,68 +37,126 @@
     $: blues = [...blueTeams, ...blueExtras].sort(sortTeams);
 
     $: isDoubleElim = match.tournamentLevel == TournamentLevel.DoubleElim;
-    $: isNewRound = isDoubleElim && checkIsNewRound(match.series, match.matchNum, teamCount);
+    $: isRoundRobin = match.tournamentLevel == TournamentLevel.RoundRobin;
+    $: isNewRound = isDoubleElim && checkIsNewRound(match.series, match.matchNum, allianceCount);
 
     $: winner = computeWinner(match.scores);
 
-    function hasAlreadyLost(series: number, teamCount: number, alliance: Alliance): boolean {
-        if (teamCount <= 10) {
-            return false;
-        } else if (teamCount <= 20) {
-            return (
-                series == 3 ||
-                series == 5 ||
-                (series == 6 && alliance == Alliance.Blue) ||
-                series == 7
-            );
-        } else if (teamCount <= 40) {
-            return (
-                series == 5 ||
-                series == 6 ||
-                series == 8 ||
-                series == 9 ||
-                (series == 10 && alliance == Alliance.Blue) ||
-                series == 11
-            );
-        } else {
-            return (
-                series == 5 ||
-                series == 6 ||
-                series == 9 ||
-                series == 10 ||
-                series == 12 ||
-                series == 13 ||
-                (series == 14 && alliance == Alliance.Blue) ||
-                series == 15
-            );
+    let showVideo: ShowMatchVideoFn = getContext(SHOW_MATCH_VIDEO);
+    const hasEventVideosFn = getContext(SHOW_EVENT_HAS_VIDEOS) as () => boolean | undefined;
+    $: eventHasVideos = !!(hasEventVideosFn ? hasEventVideosFn() : false);
+    $: matchHasVideo = ((match as any).videos ?? []).length > 0;
+
+    function hasAlreadyLost(series: number, allianceCount: number, alliance: Alliance): boolean {
+        switch (allianceCount) {
+            case 2:
+                return false;
+            case 4:
+                return (
+                    series == 3 ||
+                    series == 5 ||
+                    (series == 6 && alliance == Alliance.Blue) ||
+                    series == 7
+                );
+            case 6:
+                return (
+                    series == 5 ||
+                    series == 6 ||
+                    series == 8 ||
+                    series == 9 ||
+                    (series == 10 && alliance == Alliance.Blue) ||
+                    series == 11
+                );
+            case 8:
+                return (
+                    series == 5 ||
+                    series == 6 ||
+                    series == 9 ||
+                    series == 10 ||
+                    series == 12 ||
+                    series == 13 ||
+                    (series == 14 && alliance == Alliance.Blue) ||
+                    series == 15
+                );
+            case 16:
+                return (
+                    series == 9 ||
+                    series == 10 ||
+                    series == 11 ||
+                    series == 12 ||
+                    series == 17 ||
+                    series == 18 ||
+                    series == 19 ||
+                    series == 20 ||
+                    series == 23 ||
+                    series == 24 ||
+                    series == 25 ||
+                    series == 26 ||
+                    series == 28 ||
+                    series == 29 ||
+                    (series == 30 && alliance == Alliance.Blue) ||
+                    series == 31
+                );
+            default:
+                return false;
         }
     }
 
-    function checkIsNewRound(series: number, matchNum: number, teamCount: number): boolean {
+    function checkIsNewRound(series: number, matchNum: number, allianceCount: number): boolean {
         if (matchNum != 1) {
             return false;
         }
 
-        if (teamCount <= 10) {
-            return false;
-        } else if (teamCount <= 20) {
-            return series == 3 || series == 5 || series == 6;
-        } else if (teamCount <= 40) {
-            return series == 3 || series == 5 || series == 7 || series == 9 || series == 10;
-        } else {
-            return series == 5 || series == 9 || series == 11 || series == 13 || series == 14;
+        switch (allianceCount) {
+            case 2:
+                return false;
+            case 4:
+                return series == 3 || series == 5 || series == 6;
+            case 6:
+                return series == 3 || series == 5 || series == 7 || series == 9 || series == 10;
+            case 8:
+                return series == 5 || series == 9 || series == 11 || series == 13 || series == 14;
+            default:
+                return false;
         }
+    }
+
+    function checkIsNewRoundRobin(series: number, allianceCount: number): boolean {
+        return (series - 1) % (allianceCount / 2) == 0;
     }
 </script>
 
-<tr class:zebraStripe class:isDoubleElim class:new-round={isNewRound}>
+<tr
+    class:zebraStripe
+    class:isDoubleElim
+    class:new-round={isNewRound ||
+        (isRoundRobin && checkIsNewRoundRobin(match.series, allianceCount))}
+    class:hasVideo={eventHasVideos}
+>
+    {#if eventHasVideos}
+        <td class="video-col">
+            {#if matchHasVideo}
+                <button
+                    class="play-button"
+                    on:click|stopPropagation={() => showVideo(match)}
+                    aria-label="Show match videos"
+                    title="Show match videos"
+                >
+                    <Fa icon={faCirclePlay} />
+                </button>
+            {:else}
+                <span class="video-placeholder" aria-hidden="true" />
+            {/if}
+        </td>
+    {/if}
     <MatchScore {match} {timeZone} {showNonPenaltyScores} />
 
     {#if isDoubleElim}
         <DeLives
             alliance={Alliance.Red}
-            alreadyLost={hasAlreadyLost(match.series, teamCount, Alliance.Red)}
-            lostThis={winner == Alliance.Blue}
+            alreadyLost={hasAlreadyLost(match.series, allianceCount, Alliance.Red)}
+            lostThis={(winner == Alliance.Blue && !blues.some((t) => t.dq)) ||
+                (reds.some((t) => t.dq) && !blues.some((t) => t.dq))}
         />
     {/if}
 
@@ -112,8 +178,9 @@
     {#if isDoubleElim}
         <DeLives
             alliance={Alliance.Blue}
-            alreadyLost={hasAlreadyLost(match.series, teamCount, Alliance.Blue)}
-            lostThis={winner == Alliance.Red}
+            alreadyLost={hasAlreadyLost(match.series, allianceCount, Alliance.Blue)}
+            lostThis={(winner == Alliance.Red && !reds.some((t) => t.dq)) ||
+                (blues.some((t) => t.dq) && !reds.some((t) => t.dq))}
         />
     {/if}
 
@@ -145,8 +212,21 @@
         grid-template-columns: 10.75em auto repeat(6, 1fr) auto repeat(6, 1fr);
     }
 
+    /* When the event has videos we add a small first column for the play button */
+    tr.hasVideo {
+        grid-template-columns: 2.4rem 10.75em repeat(12, 1fr);
+    }
+
+    tr.hasVideo.isDoubleElim {
+        grid-template-columns: 2.4rem 10.75em auto repeat(6, 1fr) auto repeat(6, 1fr);
+    }
+
     tr.new-round {
         border-top: 1px solid var(--sep-color);
+    }
+
+    .play-button {
+        font-size: 1.5rem;
     }
 
     @media (max-width: 1000px) {
@@ -157,9 +237,62 @@
         tr.isDoubleElim {
             grid-template-columns: 9.75em auto repeat(6, 1fr) auto repeat(6, 1fr);
         }
+
+        /* When the event has videos we add a small first column for the play button */
+        tr.hasVideo {
+            grid-template-columns: 1.8rem 9.75em repeat(12, 1fr);
+        }
+
+        tr.hasVideo.isDoubleElim {
+            grid-template-columns: 1.8rem 9.75em auto repeat(6, 1fr) auto repeat(6, 1fr);
+        }
+
+        .play-button {
+            font-size: 1.25rem;
+        }
     }
 
     .zebraStripe {
         background: var(--zebra-stripe-color);
+    }
+
+    .video-col {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding-left: var(--sm-gap);
+        padding-right: var(--sm-gap);
+    }
+
+    .play-button {
+        background: transparent;
+        border: none;
+        padding: 0.08rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--purple-stat-color);
+        cursor: pointer;
+        line-height: 0;
+        width: 1.6rem;
+        height: 1.6rem;
+        border-radius: 6px;
+    }
+
+    .play-button:focus {
+        outline: 2px solid var(--purple-stat-color);
+        border-radius: 6px;
+    }
+
+    .play-button :global(svg) {
+        width: 1.4em;
+        height: 1.4em;
+        display: block;
+    }
+
+    .video-placeholder {
+        display: inline-block;
+        width: 1.6rem;
+        height: 1.6rem;
     }
 </style>
