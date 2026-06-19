@@ -26,6 +26,7 @@
     export let zebraStripe: boolean;
     export let showNonPenaltyScores = false;
     export let allianceCount = 0;
+    export let delayMs: number | null = null;
 
     $: teams = match.teams;
     $: redTeams = teams.filter((t) => t.alliance == Alliance.Red);
@@ -149,7 +150,7 @@
             {/if}
         </td>
     {/if}
-    <MatchScore {match} {timeZone} {showNonPenaltyScores} />
+    <MatchScore {match} {timeZone} {showNonPenaltyScores} {delayMs} />
 
     {#if isDoubleElim}
         <DeLives
