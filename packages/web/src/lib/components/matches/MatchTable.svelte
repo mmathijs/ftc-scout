@@ -137,11 +137,8 @@
         if (teamCount <= 80) return 8;
         return 16;
     }
-    $: allianceCount = allianceCountFromTeams(overrideTeamCount ?? teamCount);
-
-    if (eventCode === "FPEEUR") {
-        allianceCount = 16;
-    }
+    $: allianceCount =
+        eventCode === "FPEEUR" ? 16 : allianceCountFromTeams(overrideTeamCount ?? teamCount);
 
     //TODO MAKE THIS DYNAMIC SOMEHOW, the 1 is for team page, keep that
     $: roundRobinAllianceCount = false ? 1 : 6;
