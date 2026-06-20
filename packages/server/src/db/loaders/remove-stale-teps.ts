@@ -1,5 +1,5 @@
 import { Season } from "@ftc-scout/common";
-import { EntityManager } from "typeorm";
+import { EntityManager, In } from "typeorm";
 import { TeamMatchParticipation } from "../entities/TeamMatchParticipation";
 import { TeamEventParticipationSchemas as TepSchemas } from "../entities/dyn/team-event-participation";
 
@@ -15,11 +15,19 @@ export async function removeStaleEventTeps(
     const dbRows = await tepRepo.findBy({ season, eventCode });
     const staleNumbers = dbRows.map((r) => r.teamNumber).filter((n) => !keepNumbers.has(n));
 
+    if (staleNumbers.length === 0) return;
+
+    const teamsWithMatches = new Set(
+        (
+            await em.find(TeamMatchParticipation, {
+                where: { season, eventCode, teamNumber: In(staleNumbers) },
+                select: { teamNumber: true },
+            })
+        ).map((r) => r.teamNumber)
+    );
+
     for (const teamNumber of staleNumbers) {
-        const hasMatches = await em.exists(TeamMatchParticipation, {
-            where: { season, eventCode, teamNumber },
-        });
-        if (!hasMatches) {
+        if (!teamsWithMatches.has(teamNumber)) {
             await tepRepo.delete({ season, eventCode, teamNumber });
             console.info(`Deleted stale TEP ${season}/${eventCode}/${teamNumber}.`);
         }
