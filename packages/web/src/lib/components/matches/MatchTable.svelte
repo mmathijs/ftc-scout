@@ -103,7 +103,13 @@
     $: roundRobinDelays = getDelayForMatches(roundRobin);
 
     $: activeDelayMs = (() => {
-        for (const map of [qualsDelays, finalsDelays, doubleElimDelays, semisDelays, roundRobinDelays]) {
+        for (const map of [
+            qualsDelays,
+            finalsDelays,
+            doubleElimDelays,
+            semisDelays,
+            roundRobinDelays,
+        ]) {
             if (map.size > 0) return map.values().next().value as number;
         }
         return null;
@@ -128,7 +134,8 @@
         if (teamCount <= 10) return 2;
         if (teamCount <= 20) return 4;
         if (teamCount <= 40) return 6;
-        return 8;
+        if (teamCount <= 80) return 8;
+        return 16;
     }
     $: allianceCount = allianceCountFromTeams(overrideTeamCount ?? teamCount);
 
