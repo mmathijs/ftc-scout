@@ -117,6 +117,19 @@
                 return series == 3 || series == 5 || series == 7 || series == 9 || series == 10;
             case 8:
                 return series == 5 || series == 9 || series == 11 || series == 13 || series == 14;
+            case 16:
+                return (
+                    series == 9 ||
+                    series == 13 ||
+                    series == 17 ||
+                    series == 21 ||
+                    series == 23 ||
+                    series == 25 ||
+                    series == 27 ||
+                    series == 28 ||
+                    series == 29 ||
+                    series == 30
+                );
             default:
                 return false;
         }
