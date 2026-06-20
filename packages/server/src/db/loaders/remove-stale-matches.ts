@@ -1,5 +1,5 @@
 import { Season } from "@ftc-scout/common";
-import { EntityManager } from "typeorm";
+import { EntityManager, In } from "typeorm";
 import { Match } from "../entities/Match";
 import { TeamMatchParticipation } from "../entities/TeamMatchParticipation";
 import { MatchScoreSchemas } from "../entities/dyn/match-score";
@@ -17,22 +17,34 @@ export async function removeStaleMatches(
         select: { id: true, hasBeenPlayed: true },
     });
 
-    const staleMatches = dbMatches.filter((m) => !apiMatchIds.has(m.id));
+    const staleIds = dbMatches
+        .filter((m) => !apiMatchIds.has(m.id) && !m.hasBeenPlayed)
+        .map((m) => m.id);
 
-    for (const { id, hasBeenPlayed } of staleMatches) {
-        if (hasBeenPlayed) continue;
+    if (staleIds.length === 0) return;
 
-        const hasParticipation = await em.exists(TeamMatchParticipation, {
-            where: { season, eventCode, matchId: id },
-        });
-        if (hasParticipation) continue;
+    const withParticipation = new Set(
+        (
+            await em.find(TeamMatchParticipation, {
+                where: { season, eventCode, matchId: In(staleIds) },
+                select: { matchId: true },
+            })
+        ).map((r) => r.matchId)
+    );
 
-        const hasScore = await em.exists(MatchScoreSchemas[season], {
-            where: { season, eventCode, matchId: id },
-        });
-        if (hasScore) continue;
+    const withScore = new Set(
+        (
+            await em.find(MatchScoreSchemas[season], {
+                where: { season, eventCode, matchId: In(staleIds) },
+                select: { matchId: true },
+            })
+        ).map((r) => r.matchId)
+    );
 
-        await em.delete(Match, { eventSeason: season, eventCode, id });
-        console.info(`Deleted stale match ${season}/${eventCode}/${id}.`);
+    for (const id of staleIds) {
+        if (!withParticipation.has(id) && !withScore.has(id)) {
+            await em.delete(Match, { eventSeason: season, eventCode, id });
+            console.info(`Deleted stale match ${season}/${eventCode}/${id}.`);
+        }
     }
 }
