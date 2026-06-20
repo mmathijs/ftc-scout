@@ -538,9 +538,10 @@ async function computeNormalPlayoffPoints(
     } else {
         let amountAlive = aliveAlliances.length;
         aliveAlliances.forEach((a) => {
-            let intermediatePoints = config.getPlayoffPoints(
-                amountAlive as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8
-            );
+            let intermediatePoints =
+                amountAlive >= 1 && amountAlive <= 8
+                    ? config.getPlayoffPoints(amountAlive as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8)
+                    : 0;
             allianceTeamNumbers(alliances.find((al) => al.number === a)!).forEach((n) => {
                 playoffPts.set(n, { points: intermediatePoints, isFinal: false });
             });
