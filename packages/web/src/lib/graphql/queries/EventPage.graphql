@@ -3,6 +3,11 @@ query EventPage($season: Int!, $code: String!) {
         ...BasicEventInfo
         website
         liveStreamURL
+        livestreamsByDay {
+            day
+            liveStreamURL
+            webcasts
+        }
         type
         ongoing
         matches {
@@ -23,6 +28,20 @@ query EventPage($season: Int!, $code: String!) {
             }
             stats {
                 ...FullStats
+            }
+        }
+        previewStats {
+            teamNumber
+            npOpr
+            stats {
+                ...FullStats
+            }
+            event {
+                season
+                code
+                name
+                start
+                end
             }
         }
         awards {

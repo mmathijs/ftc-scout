@@ -33,8 +33,8 @@
 <Head title="FTCScout" />
 
 <!-- <AlertBar
-    message="Welcome to the FTC World Championships! We're doing our best to keep the site online, but the championships bring extremely large traffic flows to the website. You can check the website status with the arrow to the right..."
-    link="https://uptime.9021007.xyz/status/ftcscout"
+    message="Watch the FTC World Championships live on YouTube!"
+    link="https://www.youtube.com/watch?v=abjNLBFk1N8"
 /> -->
 
 <WidthProvider>

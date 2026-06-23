@@ -9,10 +9,12 @@ import {
     DateTimeTy,
     DateTy,
     EventTypeOption,
+    FloatTy,
     IntTy,
     RegionOption,
     Season,
     StrTy,
+    DESCRIPTORS,
     fuzzySearch,
     getEventTypes,
     getRegionCodes,
@@ -22,6 +24,7 @@ import {
     listTy,
     nn,
     nullTy,
+    wr,
 } from "@ftc-scout/common";
 import { TeamMatchParticipationGQL } from "./TeamMatchParticipation";
 import { TeamMatchParticipation } from "../../db/entities/TeamMatchParticipation";
@@ -32,13 +35,15 @@ import { TeamEventParticipation } from "../../db/entities/dyn/team-event-partici
 import { LocationGQL } from "../objs/Location";
 import { DateTime } from "luxon";
 import { DATA_SOURCE } from "../../db/data-source";
-import { Brackets, FindOptionsWhere } from "typeorm";
+import { Brackets, FindOptionsWhere, In } from "typeorm";
 import { newMatchesKey, pubsub } from "./pubsub";
 import { League } from "../../db/entities/League";
 import { LeagueRanking } from "../../db/entities/dyn/league-ranking";
 import { LeagueRankingGroupGQL } from "./League";
 import { AdvancementScoreGQL } from "./AdvancementScore";
 import { AdvancementScore } from "../../db/entities/AdvancementScore";
+import { TepStatsUnionGQL } from "../dyn/dyn-types-schema";
+import { addTypename } from "../dyn/tep";
 
 export const EventGQL: GraphQLObjectType = new GraphQLObjectType({
     name: "Event",
@@ -63,6 +68,39 @@ export const EventGQL: GraphQLObjectType = new GraphQLObjectType({
         },
         website: nullTy(StrTy),
         liveStreamURL: nullTy(StrTy),
+        livestreamsByDay: {
+            type: list(nn(EventLivestreamDayGQL)),
+            resolve: (e) => {
+                if (
+                    e.livestreamsByDay &&
+                    Array.isArray(e.livestreamsByDay) &&
+                    e.livestreamsByDay.length > 0
+                ) {
+                    return e.livestreamsByDay.map((ls) => ({
+                        day: DateTime.fromISO(ls.day as any).toJSDate(),
+                        liveStreamURL: ls.liveStreamURL,
+                        webcasts: ls.webcasts ?? [],
+                    }));
+                }
+
+                if (e.liveStreamURL) {
+                    for (let day of [e.start, e.end]) {
+                        if (day) {
+                            return [
+                                {
+                                    day,
+                                    liveStreamURL: e.liveStreamURL,
+                                    webcasts: e.webcasts,
+                                    label: null,
+                                },
+                            ];
+                        }
+                    }
+                }
+
+                return [];
+            },
+        },
         webcasts: listTy(StrTy),
         timezone: StrTy,
         start: DateTy,
@@ -240,6 +278,75 @@ export const EventGQL: GraphQLObjectType = new GraphQLObjectType({
                 };
             },
         },
+        previewStats: {
+            ...nullTy(wr(list(nn(EventPreviewStatGQL)))),
+            resolve: async (event) => {
+                if (event.published) {
+                    return null;
+                }
+
+                let roster = await TeamEventParticipation[event.season].find({
+                    where: { season: event.season, eventCode: event.code },
+                    select: ["teamNumber"],
+                });
+                let teamNumbers = roster.map((r) => r.teamNumber);
+                if (!teamNumbers.length) return [];
+
+                let descriptor = DESCRIPTORS[event.season];
+                let getQuickOpr = (t: TeamEventParticipation) => {
+                    let val = descriptor.pensSubtract
+                        ? t.opr?.totalPoints ?? null
+                        : t.opr?.totalPointsNp ?? t.opr?.totalPoints ?? null;
+                    return val == null ? null : +val;
+                };
+
+                let candidateStats = await TeamEventParticipation[event.season]
+                    .createQueryBuilder("t")
+                    .innerJoin(Event, "e", "e.season = t.season AND e.code = t.eventCode")
+                    .where("t.teamNumber IN (:...teamNumbers)", { teamNumbers })
+                    .andWhere("NOT t.isRemote")
+                    .andWhere("t.hasStats")
+                    .andWhere("NOT e.modified_rules")
+                    .getMany();
+
+                let bestStats = new Map<
+                    number,
+                    { row: TeamEventParticipation; quick: number | null; eventCode: string }
+                >();
+                for (let row of candidateStats) {
+                    let quick = getQuickOpr(row);
+                    let eventCode = row.eventCode;
+                    let existing = bestStats.get(row.teamNumber);
+                    if (!existing) {
+                        bestStats.set(row.teamNumber, { row, quick, eventCode });
+                        continue;
+                    }
+
+                    let existingValue = existing.quick ?? Number.NEGATIVE_INFINITY;
+                    let currentValue = quick ?? Number.NEGATIVE_INFINITY;
+                    if (currentValue > existingValue) {
+                        bestStats.set(row.teamNumber, { row, quick, eventCode });
+                    }
+                }
+
+                let eventCodes = new Set(candidateStats.map((r) => r.eventCode));
+                let events = await Event.findBy({
+                    season: event.season,
+                    code: In([...eventCodes]),
+                });
+                let eventMap = new Map(events.map((e) => [e.code, e]));
+
+                return teamNumbers.map((teamNumber) => {
+                    let entry = bestStats.get(teamNumber);
+                    return {
+                        teamNumber,
+                        npOpr: entry?.quick ?? null,
+                        stats: entry ? addTypename(entry.row) : null,
+                        event: eventMap.get(entry?.eventCode ?? "") ?? null,
+                    };
+                });
+            },
+        },
     }),
 });
 
@@ -270,6 +377,25 @@ const EventAdvancementInfoGQL = new GraphQLObjectType({
                 return Event.find({ where: { season, advancesTo: code } });
             },
         },
+    },
+});
+
+const EventPreviewStatGQL = new GraphQLObjectType({
+    name: "EventPreviewStat",
+    fields: {
+        teamNumber: IntTy,
+        npOpr: nullTy(FloatTy),
+        stats: { type: TepStatsUnionGQL },
+        event: { type: EventGQL },
+    },
+});
+
+const EventLivestreamDayGQL: GraphQLObjectType = new GraphQLObjectType({
+    name: "EventLivestreamDay",
+    fields: {
+        day: DateTy,
+        liveStreamURL: nullTy(StrTy),
+        webcasts: listTy(StrTy),
     },
 });
 

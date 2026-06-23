@@ -206,6 +206,22 @@
 
             <section>
                 <code class="route">
+                    /events/<span class="var">:season</span>/<span class="var">:code</span>/preview
+                </code>
+                <p>Get the stats of each team from their best event.</p>
+                <p>
+                    Returns <code>[]</code> when the event is finished.
+                </p>
+                <p>
+                    Returns all scalar fields of the <code>EventPreviewStat</code> GraphQL type.
+                </p>
+                <p>
+                    <b>Does</b> <code class="resp-code">404</code> if the event does not exist.
+                </p>
+            </section>
+
+            <section>
+                <code class="route">
                     /events/search/<span class="var">:season</span>?region=<span class="var"
                         >RegionOption</span
                     >&ZeroWidthSpace;&type=<span class="var">EventType</span
