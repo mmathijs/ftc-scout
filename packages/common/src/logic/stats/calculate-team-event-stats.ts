@@ -97,15 +97,20 @@ export function calculateTeamEventStats(
             })
     );
 
+    const isRoundRobin = matches.some((m) => m.tournamentLevel == TournamentLevel.RoundRobin);
     (isRemote ? calculateRemoteMatchesPlayed : calculateRecords)(matches, teps);
     calculateGroupStats(matches, teps, descriptor, isRemote);
     calculateOprs(matches, teps, isRemote, descriptor);
-    calculateRanks(teps, matches, descriptor);
+    calculateRanks(teps, matches, descriptor, isRoundRobin);
 
     return Object.values(teps);
 }
 
 function filterMatches(matches: FrontendMatch[]): FrontendMatch[] {
+    const rrMatches = matches.filter(
+        (m) => m.tournamentLevel == TournamentLevel.RoundRobin && m?.scores
+    );
+    if (rrMatches.length > 0) return rrMatches;
     return matches.filter((m) => m.tournamentLevel == TournamentLevel.Quals && m?.scores);
 }
 
@@ -255,10 +260,19 @@ function calculateOprs(
 function calculateRanks(
     teps: Record<number, Tep>,
     matches: FrontendMatch[],
-    descriptor: Descriptor
+    descriptor: Descriptor,
+    isRoundRobin: boolean
 ) {
     for (let stats of Object.values(teps)) {
         if (!stats.hasStats) continue;
+
+        if (isRoundRobin) {
+            // Championship Score: 2 per win, 1 per tie, 0 per loss
+            stats.rp = 2 * stats.wins + stats.ties;
+            stats.tb1 = stats.avg.totalPointsNp ?? 0;
+            stats.tb2 = stats.avg.dcBasePoints ?? 0;
+            continue;
+        }
 
         switch (descriptor.rankings.rp) {
             case "TotalPoints":
@@ -284,29 +298,31 @@ function calculateRanks(
         }
     }
 
-    for (let stats of Object.values(teps)) {
-        if (!stats.hasStats) continue;
+    if (!isRoundRobin) {
+        for (let stats of Object.values(teps)) {
+            if (!stats.hasStats) continue;
 
-        switch (descriptor.rankings.tb) {
-            case "AutoEndgameTot":
-                stats.tb1 = stats.tot.autoPoints;
-                stats.tb2 = stats.tot.egPoints;
-                break;
-            case "AutoAscentAvg":
-                stats.tb1 = stats.avg.autoPoints;
-                stats.tb2 = stats.avg.dcParkPoints;
-                break;
-            case "AutoEndgameAvg":
-                stats.tb1 = stats.avg.autoPoints;
-                stats.tb2 = stats.avg.egPoints;
-                break;
-            case "LosingScore":
-                calcLosingScoreTb(teps, matches);
-                break;
-            case "AvgNpBase":
-                stats.tb1 = stats.avg.totalPointsNp;
-                stats.tb2 = stats.avg.dcBasePoints;
-                break;
+            switch (descriptor.rankings.tb) {
+                case "AutoEndgameTot":
+                    stats.tb1 = stats.tot.autoPoints;
+                    stats.tb2 = stats.tot.egPoints;
+                    break;
+                case "AutoAscentAvg":
+                    stats.tb1 = stats.avg.autoPoints;
+                    stats.tb2 = stats.avg.dcParkPoints;
+                    break;
+                case "AutoEndgameAvg":
+                    stats.tb1 = stats.avg.autoPoints;
+                    stats.tb2 = stats.avg.egPoints;
+                    break;
+                case "LosingScore":
+                    calcLosingScoreTb(teps, matches);
+                    break;
+                case "AvgNpBase":
+                    stats.tb1 = stats.avg.totalPointsNp;
+                    stats.tb2 = stats.avg.dcBasePoints;
+                    break;
+            }
         }
     }
 
@@ -316,8 +332,25 @@ function calculateRanks(
         .sort(([_1, s1], [_2, s2]) => s2.tb1 - s1.tb1)
         .sort(([_1, s1], [_2, s2]) => s2.rp - s1.rp);
 
-    for (let rank = 0; rank < ranked.length; rank++) {
-        teps[+ranked[rank][0]].rank = rank + 1;
+    if (isRoundRobin) {
+        // All teammates share the same stats — assign dense ranks so Alliance 1 = rank 1, etc.
+        let allianceRank = 0;
+        let lastRp: number | null = null;
+        let lastTb1: number | null = null;
+        let lastTb2: number | null = null;
+        for (const [team, s] of ranked) {
+            if (s.rp !== lastRp || s.tb1 !== lastTb1 || s.tb2 !== lastTb2) {
+                allianceRank++;
+                lastRp = s.rp;
+                lastTb1 = s.tb1;
+                lastTb2 = s.tb2;
+            }
+            teps[+team].rank = allianceRank;
+        }
+    } else {
+        for (let rank = 0; rank < ranked.length; rank++) {
+            teps[+ranked[rank][0]].rank = rank + 1;
+        }
     }
 }
 

@@ -60,7 +60,7 @@
     a * {
         display: block;
         min-width: 100%;
-        width: 20ch;
+        width: var(--team-col-width, 20ch);
         max-width: 100%;
 
         white-space: nowrap;
@@ -75,7 +75,7 @@
         }
 
         a * {
-            width: 14ch;
+            width: var(--team-col-width, 14ch);
         }
     }
 

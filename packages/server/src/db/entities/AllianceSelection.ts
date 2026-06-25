@@ -26,6 +26,9 @@ export class AllianceSelection extends BaseEntity {
     @ManyToOne(() => Event)
     event!: Event;
 
+    @Column("varchar", { nullable: true })
+    name!: string | null;
+
     @Column("int", { nullable: true })
     captainTeamNumber!: number | null;
 
@@ -55,6 +58,7 @@ export class AllianceSelection extends BaseEntity {
             season,
             eventCode,
             number: api.number,
+            name: api.name ?? null,
             captainTeamNumber: api.captain?.teamNumber ?? null,
             round1TeamNumber: api.round1?.teamNumber ?? null,
             round2TeamNumber: api.round2?.teamNumber ?? null,

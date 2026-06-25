@@ -4,6 +4,7 @@ import { EventTypeGQL, EventTypeOptionGQL, RegionOptionGQL } from "./enums";
 import { AwardGQL, teamAwareAwardLoader } from "./Award";
 import { Event } from "../../db/entities/Event";
 import { Award } from "../../db/entities/Award";
+import { AllianceSelection } from "../../db/entities/AllianceSelection";
 import {
     BoolTy,
     DateTimeTy,
@@ -162,6 +163,23 @@ export const EventGQL: GraphQLObjectType = new GraphQLObjectType({
                 }
             ),
         },
+        alliances: {
+            type: list(nn(AllianceSelectionGQL)),
+            resolve: dataLoaderResolverList<
+                Event,
+                AllianceSelection,
+                { season: Season; eventCode: string }
+            >(
+                (event) => ({ season: event.season, eventCode: event.code }),
+                async (keys) => {
+                    let groups = groupBy(keys, (k) => k.season);
+                    let qs = Object.entries(groups).map(([_season, k]) =>
+                        AllianceSelection.find({ where: k, order: { number: "ASC" } })
+                    );
+                    return (await Promise.all(qs)).flat();
+                }
+            ),
+        },
         teamMatches: {
             type: list(nn(TeamMatchParticipationGQL)),
             args: { teamNumber: nullTy(IntTy) },
@@ -294,6 +312,20 @@ const EventPreviewStatGQL = new GraphQLObjectType({
         npOpr: nullTy(FloatTy),
         stats: { type: TepStatsUnionGQL },
         event: { type: EventGQL },
+    },
+});
+
+export const AllianceSelectionGQL: GraphQLObjectType = new GraphQLObjectType({
+    name: "AllianceSelection",
+    fields: {
+        number: IntTy,
+        name: nullTy(StrTy),
+        captainTeamNumber: nullTy(IntTy),
+        round1TeamNumber: nullTy(IntTy),
+        round2TeamNumber: nullTy(IntTy),
+        round3TeamNumber: nullTy(IntTy),
+        backupTeamNumber: nullTy(IntTy),
+        backupReplacedTeamNumber: nullTy(IntTy),
     },
 });
 

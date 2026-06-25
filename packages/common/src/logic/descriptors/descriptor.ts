@@ -53,6 +53,7 @@ export class Descriptor {
     hasEndgame: boolean;
     pensSubtract: boolean;
     rankings: RankingsMethod;
+    hasRoundRobin: boolean;
 
     rankingPoints?: RankingPointType[];
 
@@ -79,6 +80,7 @@ export class Descriptor {
         hasEndgame: boolean;
         pensSubtract: boolean;
         rankings: RankingsMethod;
+        hasRoundRobin?: boolean;
         rankingPoints?: RankingPointType[];
         firstDate: Date;
         lastDate: Date;
@@ -91,6 +93,7 @@ export class Descriptor {
         this.hasEndgame = opts.hasEndgame;
         this.pensSubtract = opts.pensSubtract;
         this.rankings = opts.rankings;
+        this.hasRoundRobin = opts.hasRoundRobin ?? false;
         if (!!opts.rankingPoints) {
             this.rankingPoints = opts.rankingPoints;
         }

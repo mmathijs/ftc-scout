@@ -53,6 +53,8 @@
     $: season = +$page.params.season as Season;
 
     $: stats = event?.teams?.filter((t) => notEmpty(t.stats)) ?? [];
+    $: hasRoundRobin = (event?.matches ?? []).some((m) => m.tournamentLevel === "RoundRobin");
+    $: alliances = event?.alliances ?? [];
     $: insights = event?.matches?.flatMap(getMatchScores) ?? [];
     type PreviewStat = {
         teamNumber: number;
@@ -349,6 +351,8 @@
                     eventName={event.name}
                     data={stats}
                     {focusedTeam}
+                    {hasRoundRobin}
+                    {alliances}
                 />
             </TabContent>
 

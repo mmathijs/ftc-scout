@@ -89,6 +89,7 @@ export const Descriptor2025 = new Descriptor({
         rp: "DecodeRP",
         tb: "AvgNpBase",
     },
+    hasRoundRobin: true,
     rankingPoints: [
         {
             id: "movementRp",

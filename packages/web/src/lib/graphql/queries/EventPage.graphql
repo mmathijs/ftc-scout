@@ -57,6 +57,14 @@ query EventPage($season: Int!, $code: String!) {
                 name
             }
         }
+        alliances {
+            number
+            name
+            captainTeamNumber
+            round1TeamNumber
+            round2TeamNumber
+            round3TeamNumber
+        }
         relatedEvents {
             season
             code
