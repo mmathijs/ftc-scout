@@ -38,7 +38,7 @@
     $: csv = { filename, title };
 </script>
 
-{#if alliances.length > 0}
+{#if hasRoundRobin}
     <LocalAllianceStatTableControls
         {saveId}
         {data}
