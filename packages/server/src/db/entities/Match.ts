@@ -158,11 +158,15 @@ function computeMatchOrder(
         return [level, 0, api.matchNumber];
     }
 
-    let totalSeries = allPlayoffMatches
-        .filter((match) => !match.description.toLowerCase().includes("finals"))
-        .reduce((prev: MatchFtcApi, curr: MatchFtcApi) =>
-            prev.series > curr.series ? prev : curr
-        ).series;
+    let nonFinalPlayoffMatches = allPlayoffMatches.filter(
+        (match) => !match.description.toLowerCase().includes("finals")
+    );
+    let totalSeries =
+        nonFinalPlayoffMatches.length > 0
+            ? nonFinalPlayoffMatches.reduce((prev: MatchFtcApi, curr: MatchFtcApi) =>
+                  prev.series > curr.series ? prev : curr
+              ).series
+            : 0;
 
     let teamsPerAlliance = allPlayoffMatches.some((match) =>
         match.teams.some((team) => team.station === "Red3" || team.station === "Blue3")
