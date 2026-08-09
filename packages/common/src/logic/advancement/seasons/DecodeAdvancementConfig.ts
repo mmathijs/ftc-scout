@@ -34,7 +34,6 @@ const ADVANCEMENT_JUDGED_AWARD_TYPES = new Set([
     AwardType.Inspire,
     AwardType.JudgesChoice,
     AwardType.Control,
-    AwardType.Motivate,
     AwardType.Reach,
     AwardType.Sustain,
     AwardType.Design,
