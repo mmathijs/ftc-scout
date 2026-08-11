@@ -51,9 +51,6 @@ export async function loadAdvancementSlots(season: Season, loadType: LoadType) {
                 }
                 if (dirty) {
                     await ev.save();
-                    console.info(
-                        `Updated advancement info for ${ev.code} -> slots=${adv.advancementSlots}, advancesTo=${adv.advancesTo}, fcmpReserved=${adv.fcmpReserved}`
-                    );
                     // Track events with changed advancement info for recomputation
                     if (season >= Season.Decode) {
                         advancementToRecompute.add(ev.code);
