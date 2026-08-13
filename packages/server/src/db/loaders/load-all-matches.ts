@@ -26,6 +26,7 @@ import { recomputeLeagueRankings } from "./recompute-league-rankings";
 import { exit } from "process";
 import { IS_DEV } from "../../constants";
 import { newMatchesKey, pubsub } from "../../graphql/resolvers/pubsub";
+import { computeAdvancementForEvent } from "./compute-advancement";
 
 const IGNORED_MATCHES = [
     //cSpell:disable
@@ -58,6 +59,7 @@ export async function loadAllMatches(season: Season, loadType: LoadType) {
 
     let events = await eventsToFetch(season, loadType);
     let leaguesToRecompute = new Map<string, LeagueKey>();
+    let advancementToRecompute = new Set<string>();
 
     console.info(`Got ${events.length} events to fetch.`);
 
@@ -135,6 +137,10 @@ export async function loadAllMatches(season: Season, loadType: LoadType) {
                 });
             }
 
+            if (season >= Season.Decode && updatedMatches.length > 0) {
+                advancementToRecompute.add(event.code);
+            }
+
             console.info(`Loaded ${i + 1}/${events.length}.`);
         } catch (e) {
             console.error(`Loaded ${i + 1}/${events.length} !!! ERROR !!!`);
@@ -149,6 +155,11 @@ export async function loadAllMatches(season: Season, loadType: LoadType) {
     console.info("Leagues to recompute:", leaguesToRecompute.size);
     for (let { leagueCode, regionCode } of leaguesToRecompute.values()) {
         await recomputeLeagueRankings(season, leagueCode, regionCode);
+    }
+
+    console.info("Advancements to recompute:", advancementToRecompute.size);
+    for (let eventCode of advancementToRecompute) {
+        await computeAdvancementForEvent(season, eventCode);
     }
 
     await DataHasBeenLoaded.create({
