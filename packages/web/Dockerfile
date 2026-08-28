@@ -20,9 +20,12 @@ FROM base as build
 RUN apt-get update -qq && \
     apt-get install -y build-essential pkg-config python-is-python3
 
+# Switch between codegen files between old and docker version
+ARG CODEGEN_ENV=prod
+
 # Copy application code
 COPY --link . .
-COPY ./packages/web/codegen.yml.prod ./packages/web/codegen.yml
+COPY ./packages/web/codegen.yml.${CODEGEN_ENV} ./packages/web/codegen.yml
 COPY ./packages/web/svelte.config.js.prod ./packages/web/svelte.config.js
 
 # Install node modules
