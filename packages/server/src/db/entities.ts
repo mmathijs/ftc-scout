@@ -11,6 +11,7 @@ import { Award } from "./entities/Award";
 import { TeamEventParticipationSchemas } from "./entities/dyn/team-event-participation";
 import { ApiReq } from "./entities/ApiReq";
 import { Analytics } from "./entities/Analytics";
+import { QueryAnalytics } from "./entities/QueryAnalytics";
 import { League } from "./entities/League";
 import { LeagueTeam } from "./entities/LeagueTeam";
 import { LeagueRankingSchemas } from "./entities/dyn/league-ranking";
@@ -37,5 +38,6 @@ export const ENTITIES: MixedList<string | Function | EntitySchema<any>> = [
     BestName,
     ApiReq,
     Analytics,
+    QueryAnalytics,
     ...(IS_DEV ? DEV_ENTITIES : []),
 ];

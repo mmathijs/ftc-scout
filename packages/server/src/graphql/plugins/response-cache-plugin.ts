@@ -2,6 +2,7 @@ import type { ApolloServerPlugin, GraphQLRequestContext } from "@apollo/server";
 import type { KeyValueCache } from "@apollo/utils.keyvaluecache";
 import { HeaderMap } from "@apollo/server";
 import crypto from "crypto";
+import { QueryAnalytics } from "../../db/entities/QueryAnalytics";
 
 interface CacheControlHint {
     maxAge?: number;
@@ -89,6 +90,8 @@ export function responseCachePlugin(cache: KeyValueCache): ApolloServerPlugin {
                         headers.set("cache-control", `public, max-age=${ttl}`);
                         headers.set("x-cache", "HIT");
 
+                        QueryAnalytics.save({ queryName: operationName!, cached: true });
+
                         return {
                             body: {
                                 kind: "single" as const,
@@ -103,7 +106,15 @@ export function responseCachePlugin(cache: KeyValueCache): ApolloServerPlugin {
                 },
 
                 async willSendResponse(requestContext: GraphQLRequestContext<any>) {
-                    if (!shouldCache || !cacheKey || !operationName || cachedResponse) {
+                    if (cachedResponse) {
+                        return;
+                    }
+
+                    if (operationName && operationName != "IntrospectionQuery") {
+                        QueryAnalytics.save({ queryName: operationName, cached: false });
+                    }
+
+                    if (!shouldCache || !cacheKey) {
                         return;
                     }
 
