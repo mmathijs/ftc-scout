@@ -176,7 +176,8 @@
 
     function gotoTab(tab: string) {
         if (browser) {
-            let url = $page.url.searchParams.size ? `${tab}?${$page.url.searchParams}` : tab;
+            let base = `/events/${$page.params.season}/${$page.params.code}/${tab}`;
+            let url = $page.url.searchParams.size ? `${base}?${$page.url.searchParams}` : base;
             goto(url, { replaceState: true });
         }
     }
