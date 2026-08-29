@@ -9,8 +9,8 @@
 		<div style="display: contents">%sveltekit.body%</div>
 	</body>
 	<!-- Privacy-friendly analytics by Plausible -->
-	<script async src="/js/script.js"></script>
-	<script>
+	<script async src="/js/script.js" nonce="%sveltekit.nonce%"></script>
+	<script nonce="%sveltekit.nonce%">
 		window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};
 		plausible.init({
 			endpoint: "/api/event"

@@ -26,7 +26,7 @@ ARG CODEGEN_ENV=prod
 # Copy application code
 COPY --link . .
 COPY ./packages/web/codegen.yml.${CODEGEN_ENV} ./packages/web/codegen.yml
-COPY ./packages/web/svelte.config.js.prod ./packages/web/svelte.config.js
+COPY ./packages/web/svelte.config.js.${CODEGEN_ENV} ./packages/web/svelte.config.js
 
 # Install node modules
 COPY --link package.json ./
