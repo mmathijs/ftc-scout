@@ -31,6 +31,13 @@ services:
         depends_on:
             db:
                 condition: service_healthy
+        cpu_shares: 1536
+        mem_reservation: 384M
+        deploy:
+            resources:
+                limits:
+                    cpus: "2"
+                    memory: 1G
 
     web:
         build:
@@ -47,6 +54,13 @@ services:
         restart: unless-stopped
         depends_on:
             - server
+        cpu_shares: 1024
+        mem_reservation: 192M
+        deploy:
+            resources:
+                limits:
+                    cpus: "1"
+                    memory: 512M
 
 volumes:
     pgdata:
