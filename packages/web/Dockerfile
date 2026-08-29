@@ -20,17 +20,18 @@ FROM base as build
 RUN apt-get update -qq && \
     apt-get install -y build-essential pkg-config python-is-python3
 
+COPY --link package.json package-lock.json ./
+COPY --link packages/common/package.json packages/common/package.json
+COPY --link packages/server/package.json packages/server/package.json
+COPY --link packages/web/package.json packages/web/package.json
+RUN --mount=type=cache,target=/root/.npm npm ci --include=dev
+
 # Switch between codegen files between old and docker version
 ARG CODEGEN_ENV=prod
 
-# Copy application code
 COPY --link . .
 COPY ./packages/web/codegen.yml.${CODEGEN_ENV} ./packages/web/codegen.yml
 COPY ./packages/web/svelte.config.js.${CODEGEN_ENV} ./packages/web/svelte.config.js
-
-# Install node modules
-COPY --link package.json ./
-RUN npm install --include=dev
 
 # Build application
 RUN npm run common:build

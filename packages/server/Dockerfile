@@ -20,12 +20,13 @@ FROM base as build
 RUN apt-get update -qq && \
     apt-get install -y build-essential pkg-config python-is-python3
 
-# Copy application code
-COPY --link . .
+COPY --link package.json package-lock.json ./
+COPY --link packages/common/package.json packages/common/package.json
+COPY --link packages/server/package.json packages/server/package.json
+COPY --link packages/web/package.json packages/web/package.json
+RUN --mount=type=cache,target=/root/.npm npm ci --include=dev
 
-# Install node modules
-COPY --link package.json ./
-RUN npm install --include=dev
+COPY --link . .
 
 # Build application
 RUN npm run common:build
