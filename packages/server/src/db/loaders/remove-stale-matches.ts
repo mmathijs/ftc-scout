@@ -1,7 +1,6 @@
 import { Season } from "@ftc-scout/common";
 import { EntityManager, In } from "typeorm";
 import { Match } from "../entities/Match";
-import { TeamMatchParticipation } from "../entities/TeamMatchParticipation";
 import { MatchScoreSchemas } from "../entities/dyn/match-score";
 
 export async function removeStaleMatches(
@@ -23,15 +22,6 @@ export async function removeStaleMatches(
 
     if (staleIds.length === 0) return;
 
-    const withParticipation = new Set(
-        (
-            await em.find(TeamMatchParticipation, {
-                where: { season, eventCode, matchId: In(staleIds) },
-                select: { matchId: true },
-            })
-        ).map((r) => r.matchId)
-    );
-
     const withScore = new Set(
         (
             await em.find(MatchScoreSchemas[season], {
@@ -42,7 +32,7 @@ export async function removeStaleMatches(
     );
 
     for (const id of staleIds) {
-        if (!withParticipation.has(id) && !withScore.has(id)) {
+        if (!withScore.has(id)) {
             await em.delete(Match, { eventSeason: season, eventCode, id });
             console.info(`Deleted stale match ${season}/${eventCode}/${id}.`);
         }
