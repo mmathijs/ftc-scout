@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { faRobot, faBugs, faSeedling } from "@fortawesome/free-solid-svg-icons";
+    import { faRobot } from "@fortawesome/free-solid-svg-icons";
     import { Alliance } from "@ftc-scout/common";
     import type { RankingPointType } from "@ftc-scout/common";
     import Fa from "svelte-fa";
@@ -50,9 +50,35 @@ color: #fff;
     font-size: 2em;"
         />
     {:else if id == "swarmRp"}
-        <Fa size="2x" icon={faBugs} class="fa-solid" />
-    {:else if id == "pollinator1Rp" || id == "pollinator2Rp"}
-        <Fa size="2x" icon={faSeedling} class="fa-solid" />
+        <Fa size="2x" icon={faRobot} class="fa-solid" />
+    {:else if id == "pollinator1Rp"}
+        <i
+            class="fa-solid"
+            style="position: relative;
+    width: 1em;
+    height: 1em;
+    display: inline-block;
+    background-image: url(/img/hive-1.svg);
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+    color: #fff;
+    font-size: 2em;"
+        />
+    {:else if id == "pollinator2Rp"}
+        <i
+            class="fa-solid"
+            style="position: relative;
+    width: 1em;
+    height: 1em;
+    display: inline-block;
+    background-image: url(/img/hive-2.svg);
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+    color: #fff;
+    font-size: 2em;"
+        />
     {/if}
 </span>
 
