@@ -19,6 +19,7 @@ const config = {
                 "style-src": ["self", "unsafe-inline", "fonts.googleapis.com"],
                 "img-src": ["self", "data:", "fonts.googleapis.com", "ftc-scout-server.fly.dev"],
                 "font-src": ["self", "fonts.gstatic.com", "fonts.googleapis.com"],
+                "frame-src": ["self", "www.youtube.com"],
                 "frame-ancestors": ["self"],
                 "upgrade-insecure-requests": true,
             },
