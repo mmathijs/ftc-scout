@@ -68,14 +68,14 @@ export const HomeQueries: Record<string, GraphQLFieldConfig<any, any>> = {
     },
 
     tradWorldRecord: {
-        type: nn(MatchGQL),
+        type: MatchGQL,
         args: { season: IntTy },
         resolve: async (_, { season }: { season: number }) =>
             getWorldRecordMatch(season, "s.total_points_np"),
     },
 
     tradWorldRecordWithPenalties: {
-        type: nn(MatchGQL),
+        type: MatchGQL,
         args: { season: IntTy },
         resolve: async (_, { season }: { season: number }) =>
             getWorldRecordMatch(season, "s.total_points"),
@@ -100,13 +100,13 @@ async function getWorldRecordMatch(
         .orderBy(orderColumn, "DESC")
         .where("m.has_been_played")
         .andWhere("NOT e.remote")
-        .andWhere("e.type <> 'OffSeason'")
+        .andWhere("e.type NOT IN ('OffSeason', 'NonAdvancement')")
         .andWhere("NOT e.modified_rules")
         .andWhere('m."event_season" = :season', { season })
         .limit(1)
         .getOne();
 
-    if (!match) throw "No match found for world record";
+    if (!match) return null;
 
     return DATA_SOURCE.getRepository(Match)
         .createQueryBuilder("m")
