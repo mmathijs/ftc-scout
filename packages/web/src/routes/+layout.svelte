@@ -4,6 +4,7 @@
     import Sidebar from "$lib/components/nav/Sidebar.svelte";
     import { afterNavigate } from "$app/navigation";
     import { sendAnalyticsRequest } from "./analytics";
+    import ChangelogNotice from "$lib/components/nav/ChangelogNotice.svelte";
 
     if (browser) {
         // Svelte uses window.scrollTo to emulate the scroll resetting when navigation. However we
@@ -64,6 +65,8 @@
         </div>
     </div>
 </div>
+
+<ChangelogNotice />
 
 <style>
     @import "/static/css/global.css";

@@ -9,6 +9,10 @@ export const THEME_COOKIE_AGE = 60 * 60 * 24 * 356 * 10;
 export const ALERT_COOKIE_NAME = "ftc-scout:alert-dismissed";
 export const ALERT_COOKIE_AGE = 60 * 60 * 24 * 7;
 
+// changelog notification settings
+export const CHANGELOG_SEEN_COOKIE_NAME = "ftc-scout:changelog-seen";
+export const CHANGELOG_SEEN_COOKIE_AGE = 60 * 60 * 24 * 356 * 10;
+
 // sidear contents
 export const EMAIL = "contact@ftcscout.org";
 export const DISCORD = "https://discord.gg/XTZhD9RnKa";
