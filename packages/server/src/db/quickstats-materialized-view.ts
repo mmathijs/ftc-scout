@@ -8,6 +8,7 @@ function getQuickStatsMvName(season: Season) {
 function getEgColumn(season: Season) {
     if (season == Season.IntoTheDeep) return "opr_dc_park_points";
     if (season == Season.Decode) return "opr_dc_base_points";
+    if (season == Season.BioBuzz) return "opr_dc_park_points";
     return "opr_eg_points";
 }
 
