@@ -152,6 +152,21 @@ export async function incrementallyUpdateEpas(season: Season) {
 
     if (newMatches.length === 0) return;
 
+    for (let m of newMatches) {
+        m.scores = [];
+        m.teams = [];
+    }
+    let newMatchMap = new Map(newMatches.map((m) => [`${m.eventCode}:${m.id}`, m]));
+    let matchKeys = newMatches.map((m) => ({ season, eventCode: m.eventCode, matchId: m.id }));
+
+    let Ms = MatchScore[season];
+    if (Ms) {
+        let scores = await Ms.find({ where: matchKeys });
+        for (let s of scores) newMatchMap.get(`${s.eventCode}:${s.matchId}`)?.scores.push(s);
+    }
+    let teams = await TeamMatchParticipation.find({ where: matchKeys });
+    for (let t of teams) newMatchMap.get(`${t.eventCode}:${t.matchId}`)?.teams.push(t);
+
     let matchTimeByKey = new Map(newMatches.map((m) => [`${m.eventCode}:${m.id}`, matchTimeOf(m)]));
     let touchedTeams = new Set<number>();
     let historySnapshots: TeamEpaSnapshot[] = [];
