@@ -26,6 +26,9 @@ export class DataHasBeenLoaded extends BaseEntity {
     awards!: boolean;
 
     @Column({ default: false })
+    epas!: boolean;
+
+    @Column({ default: false })
     slots!: boolean;
 
     @Column({ default: false })
@@ -51,6 +54,10 @@ export class DataHasBeenLoaded extends BaseEntity {
 
     static async awardsHaveBeenLoaded(season: Season): Promise<boolean> {
         return (await DataHasBeenLoaded.findOneBy({ season }))?.awards ?? false;
+    }
+
+    static async epasHaveBeenComputed(season: Season): Promise<boolean> {
+        return (await DataHasBeenLoaded.findOneBy({ season }))?.epas ?? false;
     }
 
     static async leaguesHaveBeenLoaded(season: Season): Promise<boolean> {

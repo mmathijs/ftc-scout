@@ -2,6 +2,7 @@ import { DESCRIPTORS, Descriptor, FloatTy, IntTy, Season, nn, notEmpty } from "@
 import { GraphQLFieldConfig, GraphQLObjectType } from "graphql";
 import { TeamEventParticipation } from "../../db/entities/dyn/team-event-participation";
 import { LeagueRanking } from "../../db/entities/dyn/league-ranking";
+import { teamEpaLoader, teamEpaHistoryLoader } from "../../db/loaders/team-epa-loader";
 
 type TepLike = (TeamEventParticipation | LeagueRanking) & {
     season: Season;
@@ -52,6 +53,22 @@ function make(descriptor: Descriptor, remote: boolean): GraphQLObjectType {
             max: { type: nn(inner) },
             dev: { type: nn(inner) },
             opr: { type: nn(inner) },
+            epa: {
+                ...FloatTy,
+                resolve: async (tep: TepLike) => {
+                    // no event fallback
+                    if (!("eventCode" in tep)) {
+                        return (
+                            (await teamEpaLoader.load(`${tep.season}:${tep.teamNumber}`))?.epa ??
+                            null
+                        );
+                    }
+                    // Find last (qual/epa updated) match of event
+                    let hist = await teamEpaHistoryLoader.load(`${tep.season}:${tep.teamNumber}`);
+                    let atEvent = hist.filter((h) => h.eventCode == tep.eventCode);
+                    return atEvent.length > 0 ? atEvent[atEvent.length - 1].epa : null;
+                },
+            },
         },
     });
 

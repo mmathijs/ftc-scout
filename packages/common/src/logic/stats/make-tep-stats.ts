@@ -115,6 +115,19 @@ export function getTepStatSet(
                 },
             }),
             new NonRankStatColumn({
+                color: Color.Blue,
+                id: "epa",
+                columnName: "EPA",
+                dialogName: "EPA",
+                titleName: "EPA",
+                sqlExpr: "epa",
+                ty: StatType.Float,
+                getNonRankValue: (d: any) => {
+                    const val = d?.stats?.epa;
+                    return val == null ? null : { ty: "float", val };
+                },
+            }),
+            new NonRankStatColumn({
                 color: Color.LightBlue,
                 id: "tb1",
                 columnName: "TBP",

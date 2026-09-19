@@ -25,6 +25,9 @@ query EventPage($season: Int!, $code: String!) {
                     state
                     country
                 }
+                epa(season: $season) {
+                    epa
+                }
             }
             stats {
                 ...FullStats

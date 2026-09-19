@@ -7,6 +7,7 @@ import { loadAllAwards } from "../db/loaders/load-all-awards";
 import { loadFutureEvents } from "../db/loaders/load-future-events";
 import { loadAllLeagues } from "../db/loaders/load-all-leagues";
 import { loadAdvancementSlots } from "../db/loaders/load-advancement-slots";
+import { computeAndSaveEpas, incrementallyUpdateEpas } from "../db/loaders/load-team-epas";
 
 export const LoadType = {
     Full: "Full",
@@ -32,6 +33,11 @@ export async function fetchPriorSeasons() {
             await loadAllMatches(season, LoadType.Full);
         } else {
             console.info(`Matches already loaded.`);
+        }
+        if (!(await DataHasBeenLoaded.epasHaveBeenComputed(season))) {
+            await computeAndSaveEpas(season);
+        } else {
+            console.info(`EPAs already computed.`);
         }
         if (!(await DataHasBeenLoaded.slotsHaveBeenLoaded(season))) {
             await loadAdvancementSlots(season, LoadType.Full);
@@ -78,8 +84,17 @@ export async function watchApi() {
             MINS_PER_HOUR
         );
         await runJob(async () => await loadAdvancementSlots(CURRENT_SEASON, LoadType.Partial), 5);
-        await runJob(async () => await loadAllMatches(CURRENT_SEASON, LoadType.Full), MINS_PER_DAY);
+        await runJob(async () => {
+            await loadAllMatches(CURRENT_SEASON, LoadType.Full);
+            // Runs right after the Full match load so it catches late-published/corrected
+            // matches that load just picked up - incrementallyUpdateEpas' watermark only moves
+            // forward and would otherwise never see them.
+            await computeAndSaveEpas(CURRENT_SEASON);
+        }, MINS_PER_DAY);
         await runJob(async () => await loadAllMatches(CURRENT_SEASON, LoadType.Partial), 1);
+        // Cheap (only new matches since last cycle), so it can run every minute instead of the
+        // old 15-minute batch-replay cadence.
+        await runJob(async () => await incrementallyUpdateEpas(CURRENT_SEASON), 1);
         await runJob(
             async () => await loadAllLeagues(CURRENT_SEASON, { recomputeRankings: true }),
             MINS_PER_DAY

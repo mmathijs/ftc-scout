@@ -38,6 +38,7 @@
     import { setContext } from "svelte";
     import { SHOW_REMOTE_FOCUS_CTX } from "$lib/components/matches/MatchTeam.svelte";
     import QuickStats from "./QuickStats.svelte";
+    import EpaSection from "./EpaSection.svelte";
     import { trackTeamView } from "../../analytics";
 
     const toSeason = (n: number) => n as Season;
@@ -114,6 +115,10 @@
 
         {#if team.quickStats}
             <QuickStats stats={team.quickStats} season={$season} />
+        {/if}
+
+        {#if team.epa}
+            <EpaSection epa={team.epa} history={team.epaHistory ?? []} />
         {/if}
 
         {#each sortedEvents as tep}

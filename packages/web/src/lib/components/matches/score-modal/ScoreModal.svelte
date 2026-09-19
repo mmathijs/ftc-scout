@@ -13,6 +13,7 @@
     import type { RemoteScoresTy, TradScoresTy } from "../MatchScore.svelte";
     import RemoteScores from "./RemoteScores.svelte";
     import TradScores from "./TradScores.svelte";
+    import EpaPredictionSection from "./EpaPredictionSection.svelte";
     import { writable, type Writable } from "svelte/store";
     import { ALL_SEASONS, type Season } from "@ftc-scout/common";
 
@@ -29,7 +30,7 @@
     let dispatch = createEventDispatcher();
 </script>
 
-{#if match && scores && matchDescription}
+{#if match && matchDescription && (scores || match.epaPrediction)}
     <Modal
         bind:shown
         titleText="Match {match.description}"
@@ -38,15 +39,35 @@
             dispatch("close");
         }}
     >
-        {#if trad}
-            <TradScores scores={trad} {matchDescription} teams={match.teams} {level} />
-        {:else if remote}
-            <RemoteScores
-                scores={remote}
-                {matchDescription}
-                teams={match.teams}
-                teamNumber={match.teams[0].teamNumber}
-            />
-        {/if}
+        <div class="content">
+            {#if trad}
+                <TradScores scores={trad} {matchDescription} teams={match.teams} {level} />
+
+                {#if match.epaPrediction}
+                    <EpaPredictionSection
+                        epaPrediction={match.epaPrediction}
+                        actualRed={trad.red.totalPoints}
+                        actualBlue={trad.blue.totalPoints}
+                    />
+                {/if}
+            {:else if remote}
+                <RemoteScores
+                    scores={remote}
+                    {matchDescription}
+                    teams={match.teams}
+                    teamNumber={match.teams[0].teamNumber}
+                />
+            {:else if match.epaPrediction}
+                <EpaPredictionSection epaPrediction={match.epaPrediction} />
+            {/if}
+        </div>
     </Modal>
 {/if}
+
+<style>
+    .content {
+        width: 540px;
+        max-width: 100%;
+        margin: 0 auto;
+    }
+</style>

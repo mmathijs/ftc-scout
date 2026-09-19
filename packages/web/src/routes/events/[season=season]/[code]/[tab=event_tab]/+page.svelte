@@ -72,12 +72,15 @@
     $: previewStats = ((event as any)?.previewStats ?? []) as PreviewStat[];
     $: previewStatMap = new Map<number, PreviewStat>(previewStats.map((s) => [s.teamNumber, s]));
     $: previewTeams = (event?.teams ?? [])
-        .map((team) => ({
-            ...team,
-            quickOpr: previewStatMap.get(team.teamNumber)?.npOpr ?? null,
-            stats: previewStatMap.get(team.teamNumber)?.stats ?? team.stats,
-            event: previewStatMap.get(team.teamNumber)?.event ?? null,
-        }))
+        .map((team) => {
+            let stats = previewStatMap.get(team.teamNumber)?.stats ?? team.stats;
+            return {
+                ...team,
+                quickOpr: previewStatMap.get(team.teamNumber)?.npOpr ?? null,
+                stats: stats ? { ...stats, epa: team.team.epa?.epa ?? null } : stats,
+                event: previewStatMap.get(team.teamNumber)?.event ?? null,
+            };
+        })
         .sort((a, b) => {
             if (a.quickOpr == null && b.quickOpr == null) return a.teamNumber - b.teamNumber;
             if (a.quickOpr == null) return 1;

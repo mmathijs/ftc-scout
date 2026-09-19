@@ -9,6 +9,9 @@ import { Match } from "./entities/Match";
 import { TeamMatchParticipation } from "./entities/TeamMatchParticipation";
 import { Award } from "./entities/Award";
 import { TeamEventParticipationSchemas } from "./entities/dyn/team-event-participation";
+import { TeamEpa } from "./entities/TeamEpa";
+import { TeamEpaHistory } from "./entities/TeamEpaHistory";
+import { EpaLiveState } from "./entities/EpaLiveState";
 import { ApiReq } from "./entities/ApiReq";
 import { Analytics } from "./entities/Analytics";
 import { QueryAnalytics } from "./entities/QueryAnalytics";
@@ -35,6 +38,9 @@ export const ENTITIES: MixedList<string | Function | EntitySchema<any>> = [
     ...Object.values(MatchScoreSchemas),
     ...Object.values(TeamEventParticipationSchemas),
     ...Object.values(LeagueRankingSchemas),
+    TeamEpa,
+    TeamEpaHistory,
+    EpaLiveState,
     BestName,
     ApiReq,
     Analytics,

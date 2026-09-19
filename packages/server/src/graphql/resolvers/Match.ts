@@ -1,6 +1,17 @@
 import { GraphQLObjectType, GraphQLResolveInfo } from "graphql";
 import { dataLoaderResolverSingle, keyListToWhereClause } from "../utils";
-import { BoolTy, DateTimeTy, IntTy, StrTy, list, nn, nullTy } from "@ftc-scout/common";
+import {
+    Alliance,
+    BoolTy,
+    DateTimeTy,
+    FloatTy,
+    IntTy,
+    StrTy,
+    list,
+    nn,
+    nullTy,
+    predictMatch,
+} from "@ftc-scout/common";
 import { Match } from "../../db/entities/Match";
 import { Event } from "../../db/entities/Event";
 import { TournamentLevelGQL } from "./enums";
@@ -15,6 +26,18 @@ import { EventGQL } from "./Event";
 import { VideoGQL } from "./Video";
 import { MatchScore } from "../../db/entities/dyn/match-score";
 import { TeamMatchParticipation } from "../../db/entities/TeamMatchParticipation";
+import { teamEpaLoader, teamEpaHistoryLoader } from "../../db/loaders/team-epa-loader";
+
+const EpaPredictionGQL = new GraphQLObjectType({
+    name: "EpaPrediction",
+    fields: {
+        redScore: FloatTy,
+        blueScore: FloatTy,
+        redWinProb: FloatTy,
+        redSigma: FloatTy,
+        blueSigma: FloatTy,
+    },
+});
 
 export const MatchGQL: GraphQLObjectType = new GraphQLObjectType({
     name: "Match",
@@ -45,6 +68,72 @@ export const MatchGQL: GraphQLObjectType = new GraphQLObjectType({
 
         videos: { type: list(nn(VideoGQL)), resolve: (m) => m.videos || [] },
 
+        epaPrediction: {
+            type: EpaPredictionGQL,
+            resolve: async (m: Match) => {
+                let teams = (m.teams ?? []).filter(
+                    (t) =>
+                        !t.surrogate && (t.alliance == Alliance.Red || t.alliance == Alliance.Blue)
+                );
+                let redTeams = teams.filter((t) => t.alliance == Alliance.Red);
+                let blueTeams = teams.filter((t) => t.alliance == Alliance.Blue);
+                if (redTeams.length != 2 || blueTeams.length != 2) return null;
+                let allTeams = [...redTeams, ...blueTeams];
+
+                let liveRows = await Promise.all(
+                    allTeams.map((t) => teamEpaLoader.load(`${m.eventSeason}:${t.teamNumber}`))
+                );
+                let fitSource = liveRows.find((r) => r != null);
+                if (!fitSource) return null;
+                let fit =
+                    fitSource.fitA != null && fitSource.fitB != null
+                        ? { a: fitSource.fitA, b: fitSource.fitB }
+                        : null;
+
+                let epaInputs: ({ epa: number } | null)[];
+
+                // If is played use epa before that match
+                if (m.hasBeenPlayed) {
+                    let histories = await Promise.all(
+                        allTeams.map((t) =>
+                            teamEpaHistoryLoader.load(`${m.eventSeason}:${t.teamNumber}`)
+                        )
+                    );
+                    let matchTime = m.actualStartTime ?? m.scheduledStartTime ?? m.postResultTime;
+                    epaInputs = histories.map((hist) => {
+                        let sameMatch = hist.filter(
+                            (h) => h.eventCode == m.eventCode && h.matchId == m.id
+                        );
+                        let thisEntry = sameMatch[sameMatch.length - 1];
+                        if (thisEntry) {
+                            return (
+                                hist.find((h) => h.matchesPlayed == thisEntry.matchesPlayed - 1) ??
+                                null
+                            );
+                        }
+
+                        let beforeThisMatch =
+                            matchTime == null
+                                ? hist.filter((h) => h.eventCode == m.eventCode)
+                                : hist.filter(
+                                      (h) => h.matchTime != null && h.matchTime < matchTime!
+                                  );
+                        return beforeThisMatch.length > 0
+                            ? beforeThisMatch[beforeThisMatch.length - 1]
+                            : null;
+                    });
+                } else {
+                    // if not yet played, use current EPA
+                    epaInputs = liveRows;
+                }
+
+                let [r1, r2, b1, b2] = epaInputs;
+                if (!r1 || !r2 || !b1 || !b2) return null;
+
+                return predictMatch([r1, r2], [b1, b2], fit);
+            },
+        },
+
         event: {
             type: nn(EventGQL),
             resolve: dataLoaderResolverSingle<Match, Event, { season: Season; code: string }>(
@@ -65,7 +154,9 @@ export function singleSeasonScoreAwareMatchLoader<
     includeVideos = false
 ): Promise<Match[]> {
     includeScores ||= info.some((i) => "scores" in graphqlFields(i));
-    includeTeams ||= info.some((i) => "teams" in graphqlFields(i));
+    includeTeams ||= info.some(
+        (i) => "teams" in graphqlFields(i) || "epaPrediction" in graphqlFields(i)
+    );
     includeVideos ||= info.some((i) => "videos" in graphqlFields(i));
     let season = keys[0].eventSeason as Season;
 

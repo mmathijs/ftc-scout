@@ -8,6 +8,13 @@ fragment FullMatch on Match {
     tournamentLevel
     scheduledStartTime
     actualStartTime
+    epaPrediction {
+        redScore
+        blueScore
+        redWinProb
+        redSigma
+        blueSigma
+    }
     scores {
         ...FullMatchScores
     }

@@ -88,7 +88,7 @@
 </script>
 
 <td
-    class:hasScores={match.scores}
+    class:hasScores={match.scores || match.epaPrediction}
     use:tippy={tip}
     on:click={() => show(match)}
     id="{match.eventCode}-{match.id}"
@@ -103,13 +103,36 @@
     </div>
     <div class="score">
         {#if match.scores == undefined}
-            {#if predictedTime}
-                <span class="predicted" title="Predicted based on current delay"
-                    >{prettyPrintTime(predictedTime, timeZone)}</span
-                >
-            {:else}
-                {prettyPrintTimeString(match.scheduledStartTime, timeZone)}
-            {/if}
+            <div class="pre-match">
+                <div class="time">
+                    {#if predictedTime}
+                        <span class="predicted" title="Predicted based on current delay"
+                            >{prettyPrintTime(predictedTime, timeZone)}</span
+                        >
+                    {:else}
+                        {prettyPrintTimeString(match.scheduledStartTime, timeZone)}
+                    {/if}
+                </div>
+                {#if match.epaPrediction}
+                    {@const pred = match.epaPrediction}
+                    {@const favoredIsRed = pred.redWinProb >= 0.5}
+                    {@const favoredProb = favoredIsRed ? pred.redWinProb : 1 - pred.redWinProb}
+                    <div
+                        class="prediction"
+                        title="EPA prediction: {Math.round(pred.redScore)} - {Math.round(
+                            pred.blueScore
+                        )} ({Math.round(favoredProb * 100)}% {favoredIsRed ? 'red' : 'blue'})"
+                    >
+                        <span class="pred-red" class:favored={pred.redWinProb >= 0.5}>
+                            {Math.round(pred.redScore)}
+                        </span>
+                        <span class="pred-sep">-</span>
+                        <span class="pred-blue" class:favored={pred.redWinProb < 0.5}>
+                            {Math.round(pred.blueScore)}
+                        </span>
+                    </div>
+                {/if}
+            </div>
         {:else if "red" in match.scores}
             <div class="left" class:winner={winner == Alliance.Red} class:tie={winner == "Tie"}>
                 {#if hasRpDots}
@@ -233,6 +256,32 @@
         display: flex;
         justify-content: space-around;
         gap: var(--sm-gap);
+    }
+
+    .pre-match {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        width: 100%;
+    }
+
+    .prediction {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: var(--sm-font-size);
+        color: var(--grayed-out-text-color);
+    }
+
+    .pred-red.favored {
+        color: var(--red-team-text-color);
+        font-weight: bold;
+    }
+
+    .pred-blue.favored {
+        color: var(--blue-team-text-color);
+        font-weight: bold;
     }
 
     .score .left {
