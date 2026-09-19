@@ -96,11 +96,18 @@ export async function computeAndSaveEpas(season: Season) {
     let rows = Object.keys(result.teamEpas).map((teamNumber) =>
         toTeamEpaRow(season, +teamNumber, engineState)
     );
-    let historyRows = result.history.map((h) => toHistoryRow(season, h, matchTimeByKey));
+    const HISTORY_CHUNK_SIZE = 2000;
 
     await DATA_SOURCE.transaction(async (em) => {
         await em.getRepository(TeamEpa).save(rows, { chunk: 500 });
-        await em.getRepository(TeamEpaHistory).save(historyRows, { chunk: 500 });
+
+        for (let i = 0; i < result.history.length; i += HISTORY_CHUNK_SIZE) {
+            let chunk = result.history
+                .slice(i, i + HISTORY_CHUNK_SIZE)
+                .map((h) => toHistoryRow(season, h, matchTimeByKey));
+            await em.getRepository(TeamEpaHistory).save(chunk);
+        }
+
         await em.getRepository(EpaLiveState).save(
             EpaLiveState.create({
                 season,
@@ -115,7 +122,7 @@ export async function computeAndSaveEpas(season: Season) {
     await DataHasBeenLoaded.create({ season, epas: true }).save();
 
     console.info(
-        `Computed EPA for ${rows.length} teams (${historyRows.length} match snapshots) in season ${season}.`
+        `Computed EPA for ${rows.length} teams (${result.history.length} match snapshots) in season ${season}.`
     );
 }
 
@@ -167,14 +174,14 @@ export async function incrementallyUpdateEpas(season: Season) {
 
     let matchTimeByKey = new Map(newMatches.map((m) => [`${m.eventCode}:${m.id}`, matchTimeOf(m)]));
     let touchedTeams = new Set<number>();
-    let historyRows: TeamEpaHistory[] = [];
+    let historySnapshots: TeamEpaSnapshot[] = [];
 
     for (let m of newMatches) {
         let result = applyMatchIncremental(engineState, m.toFrontend(), DEFAULT_EPA_PARAMS);
         if (!result) continue;
         for (let h of result.history) {
             touchedTeams.add(h.teamNumber);
-            historyRows.push(toHistoryRow(season, h, matchTimeByKey));
+            historySnapshots.push(h);
         }
     }
 
@@ -182,10 +189,18 @@ export async function incrementallyUpdateEpas(season: Season) {
         toTeamEpaRow(season, teamNumber, engineState)
     );
     let last = newMatches[newMatches.length - 1];
+    const HISTORY_CHUNK_SIZE = 2000;
 
     await DATA_SOURCE.transaction(async (em) => {
         await em.getRepository(TeamEpa).save(teamRows, { chunk: 500 });
-        await em.getRepository(TeamEpaHistory).save(historyRows, { chunk: 500 });
+
+        for (let i = 0; i < historySnapshots.length; i += HISTORY_CHUNK_SIZE) {
+            let chunk = historySnapshots
+                .slice(i, i + HISTORY_CHUNK_SIZE)
+                .map((h) => toHistoryRow(season, h, matchTimeByKey));
+            await em.getRepository(TeamEpaHistory).save(chunk);
+        }
+
         await em.getRepository(EpaLiveState).save(
             EpaLiveState.create({
                 season,
