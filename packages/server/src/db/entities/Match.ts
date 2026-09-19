@@ -131,6 +131,39 @@ export class Match extends BaseEntity {
     }
 }
 
+function allianceKey(teams: MatchFtcApi["teams"]): string {
+    let red = teams
+        .filter((t) => t.station.startsWith("Red"))
+        .map((t) => t.teamNumber)
+        .sort((a, b) => a - b)
+        .join(",");
+    let blue = teams
+        .filter((t) => t.station.startsWith("Blue"))
+        .map((t) => t.teamNumber)
+        .sort((a, b) => a - b)
+        .join(",");
+    return [red, blue].sort().join("|");
+}
+
+// True if every alliance plays every other alliance exactly once - a pair may meet twice if
+// their first match was a draw, since draws get replayed.
+function isRoundRobin(nonFinalPlayoffMatches: MatchFtcApi[], allianceCount: number): boolean {
+    let byPairing = new Map<string, MatchFtcApi[]>();
+    for (let m of nonFinalPlayoffMatches) {
+        let key = allianceKey(m.teams);
+        (byPairing.get(key) ?? byPairing.set(key, []).get(key)!).push(m);
+    }
+
+    if (byPairing.size !== (allianceCount * (allianceCount - 1)) / 2) return false;
+
+    return [...byPairing.values()].every((matches) => {
+        let replays = [...matches].sort((a, b) => a.series - b.series).slice(0, -1);
+        return replays.every(
+            (m) => m.scoreRedFinal != null && m.scoreRedFinal === m.scoreBlueFinal
+        );
+    });
+}
+
 function computeMatchOrder(
     level: TournamentLevel,
     api: MatchFtcApi,
@@ -179,8 +212,7 @@ function computeMatchOrder(
         console.error(`AllianceCount is not an integer for event: ${event.code}`);
     }
 
-    // Check if it is round-robin by checking if the amount of series is equal to the expected amount for round-robin
-    if (totalSeries === (allianceCount * (allianceCount - 1)) / 2) {
+    if (isRoundRobin(nonFinalPlayoffMatches, allianceCount)) {
         if (api.series > totalSeries) {
             level = TournamentLevel.Finals;
             return [level, api.series, api.matchNumber];

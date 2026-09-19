@@ -22,6 +22,20 @@ function matchTimeOf(m: Match): Date | null {
     return m.actualStartTime ?? m.scheduledStartTime ?? m.postResultTime;
 }
 
+// Postgres' wire protocol caps a single query at 65535 bound parameters - upsert() (unlike
+// save(..., {chunk})) doesn't chunk large arrays itself, so a season with enough teams (8 params
+// each) can overflow that limit in one shot. Chunking here keeps every upsert well under it.
+async function upsertChunked<T extends object>(
+    repo: { upsert: (entities: T[], conflictPaths: string[]) => Promise<unknown> },
+    entities: T[],
+    conflictPaths: string[],
+    chunkSize: number
+) {
+    for (let i = 0; i < entities.length; i += chunkSize) {
+        await repo.upsert(entities.slice(i, i + chunkSize), conflictPaths);
+    }
+}
+
 function toTeamEpaRow(season: Season, teamNumber: number, engineState: EpaEngineState): TeamEpa {
     let state = engineState.teamEpas[teamNumber];
     return TeamEpa.create({
@@ -90,27 +104,34 @@ export async function computeAndSaveEpas(season: Season) {
     );
     const HISTORY_CHUNK_SIZE = 2000;
 
-    await DATA_SOURCE.transaction(async (em) => {
-        await em.getRepository(TeamEpa).save(rows, { chunk: 500 });
+    await upsertChunked(
+        DATA_SOURCE.getRepository(TeamEpa),
+        rows,
+        ["season", "teamNumber"],
+        HISTORY_CHUNK_SIZE
+    );
 
-        for (let i = 0; i < result.history.length; i += HISTORY_CHUNK_SIZE) {
-            let chunk = result.history
-                .slice(i, i + HISTORY_CHUNK_SIZE)
-                .map((h) => toHistoryRow(season, h, matchTimeByKey));
-            await em.getRepository(TeamEpaHistory).save(chunk);
-        }
+    for (let i = 0; i < result.history.length; i += HISTORY_CHUNK_SIZE) {
+        let chunk = result.history
+            .slice(i, i + HISTORY_CHUNK_SIZE)
+            .map((h) => toHistoryRow(season, h, matchTimeByKey));
+        await DATA_SOURCE.getRepository(TeamEpaHistory).upsert(chunk, [
+            "season",
+            "teamNumber",
+            "matchesPlayed",
+        ]);
+        await new Promise((resolve) => setImmediate(resolve));
+    }
 
-        await em.getRepository(EpaLiveState).save(
-            EpaLiveState.create({
-                season,
-                engineState: engineState as unknown as Record<string, unknown>,
-                lastMatchTime:
-                    result.lastMatch?.time != null ? new Date(result.lastMatch.time) : null,
-                lastMatchId: result.lastMatch?.matchId ?? null,
-                lastEventCode: result.lastMatch?.eventCode ?? null,
-            })
-        );
-    });
+    await DATA_SOURCE.getRepository(EpaLiveState).save(
+        EpaLiveState.create({
+            season,
+            engineState: engineState as unknown as Record<string, unknown>,
+            lastMatchTime: result.lastMatch?.time != null ? new Date(result.lastMatch.time) : null,
+            lastMatchId: result.lastMatch?.matchId ?? null,
+            lastEventCode: result.lastMatch?.eventCode ?? null,
+        })
+    );
     await DataHasBeenLoaded.create({ season, epas: true }).save();
 
     console.info(
@@ -186,26 +207,35 @@ export async function incrementallyUpdateEpas(season: Season) {
     let last = newMatches[newMatches.length - 1];
     const HISTORY_CHUNK_SIZE = 2000;
 
-    await DATA_SOURCE.transaction(async (em) => {
-        await em.getRepository(TeamEpa).save(teamRows, { chunk: 500 });
+    // Not wrapped in a transaction - see computeAndSaveEpas' comment on the same choice.
+    await upsertChunked(
+        DATA_SOURCE.getRepository(TeamEpa),
+        teamRows,
+        ["season", "teamNumber"],
+        HISTORY_CHUNK_SIZE
+    );
 
-        for (let i = 0; i < historySnapshots.length; i += HISTORY_CHUNK_SIZE) {
-            let chunk = historySnapshots
-                .slice(i, i + HISTORY_CHUNK_SIZE)
-                .map((h) => toHistoryRow(season, h, matchTimeByKey));
-            await em.getRepository(TeamEpaHistory).save(chunk);
-        }
+    for (let i = 0; i < historySnapshots.length; i += HISTORY_CHUNK_SIZE) {
+        let chunk = historySnapshots
+            .slice(i, i + HISTORY_CHUNK_SIZE)
+            .map((h) => toHistoryRow(season, h, matchTimeByKey));
+        await DATA_SOURCE.getRepository(TeamEpaHistory).upsert(chunk, [
+            "season",
+            "teamNumber",
+            "matchesPlayed",
+        ]);
+        await new Promise((resolve) => setImmediate(resolve));
+    }
 
-        await em.getRepository(EpaLiveState).save(
-            EpaLiveState.create({
-                season,
-                engineState: engineState as unknown as Record<string, unknown>,
-                lastMatchTime: matchTimeOf(last),
-                lastMatchId: last.id,
-                lastEventCode: last.eventCode,
-            })
-        );
-    });
+    await DATA_SOURCE.getRepository(EpaLiveState).save(
+        EpaLiveState.create({
+            season,
+            engineState: engineState as unknown as Record<string, unknown>,
+            lastMatchTime: matchTimeOf(last),
+            lastMatchId: last.id,
+            lastEventCode: last.eventCode,
+        })
+    );
 
     console.info(
         `Incrementally updated EPA for ${teamRows.length} teams (${newMatches.length} new matches)`
