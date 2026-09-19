@@ -93,19 +93,9 @@
     $: peakY_red = yFor(normalPdf(0, 0, redSd));
     $: peakY_blue = yFor(normalPdf(0, 0, blueSd));
 
-    $: peaksAreClose = Math.abs(peakX_red - peakX_blue) < 50;
-    $: redIsShorter = peakY_red > peakY_blue;
-    $: tallerPeakY = Math.min(peakY_red, peakY_blue);
-    $: redLabelY = peaksAreClose
-        ? tallerPeakY - 24
-        : redIsShorter
-        ? peakY_red + 28
-        : peakY_red - 12;
-    $: blueLabelY = peaksAreClose
-        ? tallerPeakY - 12
-        : redIsShorter
-        ? peakY_blue - 12
-        : peakY_blue + 28;
+    $: redIsShorter = peakY_red >= peakY_blue;
+    $: redLabelY = redIsShorter ? peakY_red + 28 : peakY_red - 12;
+    $: blueLabelY = redIsShorter ? peakY_blue - 12 : peakY_blue + 28;
 
     // Position text below are above curve to avoid collision
     function leaderEnd(dotY: number, labelY: number): number {
