@@ -15,6 +15,8 @@ import { TeamEpa } from "../entities/TeamEpa";
 import { TeamEpaHistory } from "../entities/TeamEpaHistory";
 import { DataHasBeenLoaded } from "../entities/DataHasBeenLoaded";
 import { EpaLiveState } from "../entities/EpaLiveState";
+import { MatchScore } from "../entities/dyn/match-score";
+import { TeamMatchParticipation } from "../entities/TeamMatchParticipation";
 
 function matchTimeOf(m: Match): Date | null {
     return m.actualStartTime ?? m.scheduledStartTime ?? m.postResultTime;
@@ -50,35 +52,11 @@ function toHistoryRow(
     });
 }
 
-// Full deterministic replay, same idea as calculateTeamEventStats's per-event recompute
-// (see load-all-matches.ts) but widened to a whole season: every call walks *all* of a
-// season's played qualification matches in chronological order and recomputes every team's
-// EPA from the cold-start default. Cheap (pure arithmetic, no SVD) and self-correcting if
-// events happen to load out of true chronological order between sync cycles, or if a match's
-// score gets corrected retroactively.
-//
-// Besides TeamEpa/TeamEpaHistory, this also (re)seeds EpaLiveState from the replay's own result
-// - the hand-off point incrementallyUpdateEpas resumes from between full replays (see watch.ts:
-// this runs once at startup and again after every "Full" match load, which is also exactly the
-// job that picks up late-published/corrected older events; incrementallyUpdateEpas fills the
-// gap in between on a 1-minute cycle without redoing the whole season each time).
 export async function computeAndSaveEpas(season: Season) {
     let matches = await DATA_SOURCE.getRepository(Match)
         .createQueryBuilder("m")
         .where("m.event_season = :season", { season })
         .andWhere("m.has_been_played")
-        .leftJoinAndMapMany(
-            "m.scores",
-            `match_score_${season}`,
-            "ms",
-            "m.event_season = ms.season AND m.event_code = ms.event_code AND m.id = ms.match_id"
-        )
-        .leftJoinAndMapMany(
-            "m.teams",
-            "team_match_participation",
-            "tmp",
-            "m.event_season = tmp.season AND m.event_code = tmp.event_code AND m.id = tmp.match_id"
-        )
         .orderBy(
             "COALESCE(m.actual_start_time, m.scheduled_start_time, m.post_result_time)",
             "ASC",
@@ -86,6 +64,20 @@ export async function computeAndSaveEpas(season: Season) {
         )
         .addOrderBy("m.id", "ASC")
         .getMany();
+
+    for (let m of matches) {
+        m.scores = [];
+        m.teams = [];
+    }
+    let matchMap = new Map(matches.map((m) => [`${m.eventCode}:${m.id}`, m]));
+
+    let Ms = MatchScore[season];
+    if (Ms) {
+        let scores = await Ms.find({ where: { season } });
+        for (let s of scores) matchMap.get(`${s.eventCode}:${s.matchId}`)?.scores.push(s);
+    }
+    let teams = await TeamMatchParticipation.find({ where: { season } });
+    for (let t of teams) matchMap.get(`${t.eventCode}:${t.matchId}`)?.teams.push(t);
 
     let frontendMatches: FrontendMatch[] = matches.map((m) => m.toFrontend());
     let matchTimeByKey = new Map(matches.map((m) => [`${m.eventCode}:${m.id}`, matchTimeOf(m)]));
@@ -137,19 +129,7 @@ export async function incrementallyUpdateEpas(season: Season) {
         .createQueryBuilder("m")
         .where("m.event_season = :season", { season })
         .andWhere("m.has_been_played")
-        .andWhere("m.tournament_level = 'Quals'")
-        .leftJoinAndMapMany(
-            "m.scores",
-            `match_score_${season}`,
-            "ms",
-            "m.event_season = ms.season AND m.event_code = ms.event_code AND m.id = ms.match_id"
-        )
-        .leftJoinAndMapMany(
-            "m.teams",
-            "team_match_participation",
-            "tmp",
-            "m.event_season = tmp.season AND m.event_code = tmp.event_code AND m.id = tmp.match_id"
-        );
+        .andWhere("m.tournament_level = 'Quals'");
 
     // Find new matches (with null handling)
     qb.andWhere(
