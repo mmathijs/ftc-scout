@@ -6,10 +6,14 @@
     "scripts": {
         "watch": "tsc -w",
         "build": "tsc",
-        "check": "tsc --noEmit"
+        "check": "tsc --noEmit",
+        "test": "vitest run"
     },
     "dependencies": {
         "async-mutex": "^0.4.0",
         "ml-matrix": "^6.10.4"
+    },
+    "devDependencies": {
+        "vitest": "^5.0.1"
     }
 }

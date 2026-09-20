@@ -1,5 +1,5 @@
 import { GraphQLFieldConfig, GraphQLInt, GraphQLObjectType } from "graphql";
-import { dataLoaderResolverList, dataLoaderResolverSingle } from "../utils";
+import { dataLoaderResolver, dataLoaderResolverList, dataLoaderResolverSingle } from "../utils";
 import {
     ALL_SEASONS,
     DateTimeTy,
@@ -31,6 +31,8 @@ import { DATA_SOURCE } from "../../db/data-source";
 import { getQuickStatsViewName } from "../../db/quickstats-materialized-view";
 import { TeamEpaHistory } from "../../db/entities/TeamEpaHistory";
 import { teamEpaRankLoader } from "../../db/loaders/team-epa-loader";
+import { TeamEpa } from "../../db/entities/TeamEpa";
+import { TeamOpr } from "../../db/entities/TeamOpr";
 
 const QuickStatGQL = new GraphQLObjectType({
     name: "QuickStat",
@@ -52,6 +54,8 @@ const QuickStatsGQL = new GraphQLObjectType({
     },
 });
 
+type SeasonTeamKey = { season: Season; teamNumber: number };
+
 export const TeamEpaGQL: GraphQLObjectType = new GraphQLObjectType({
     name: "TeamEpa",
     fields: () => ({
@@ -60,6 +64,56 @@ export const TeamEpaGQL: GraphQLObjectType = new GraphQLObjectType({
         epa: FloatTy,
         matchesPlayed: IntTy,
         rank: IntTy,
+        // Cross-referenced against TeamOpr, for pages that want to show both ratings side by side
+        // (e.g. the records page's Rankings tab) without a second round trip.
+        opr: {
+            type: nullTy(FloatTy).type,
+            resolve: dataLoaderResolver<SeasonTeamKey, number | null, SeasonTeamKey, {}, TeamOpr>(
+                (e) => ({ season: e.season, teamNumber: e.teamNumber }),
+                (keys) => TeamOpr.find({ where: keys }),
+                (keys, results) =>
+                    keys.map(
+                        (k) =>
+                            results.find(
+                                (r) => r.season == k.season && r.teamNumber == k.teamNumber
+                            )?.opr ?? null
+                    )
+            ),
+        },
+        team: {
+            type: nn(TeamGQL),
+            resolve: dataLoaderResolverSingle<{ teamNumber: number }, Team, number>(
+                (e) => e.teamNumber,
+                (keys) => Team.find({ where: { number: In(keys) } }),
+                (k, t) => k == t.number
+            ),
+        },
+    }),
+});
+
+export const TeamOprGQL: GraphQLObjectType = new GraphQLObjectType({
+    name: "TeamOpr",
+    fields: () => ({
+        season: IntTy,
+        teamNumber: IntTy,
+        opr: FloatTy,
+        matchesPlayed: IntTy,
+        rank: IntTy,
+        // Cross-referenced against TeamEpa - see TeamEpaGQL.opr's comment.
+        epa: {
+            type: nullTy(FloatTy).type,
+            resolve: dataLoaderResolver<SeasonTeamKey, number | null, SeasonTeamKey, {}, TeamEpa>(
+                (e) => ({ season: e.season, teamNumber: e.teamNumber }),
+                (keys) => TeamEpa.find({ where: keys }),
+                (keys, results) =>
+                    keys.map(
+                        (k) =>
+                            results.find(
+                                (r) => r.season == k.season && r.teamNumber == k.teamNumber
+                            )?.epa ?? null
+                    )
+            ),
+        },
         team: {
             type: nn(TeamGQL),
             resolve: dataLoaderResolverSingle<{ teamNumber: number }, Team, number>(

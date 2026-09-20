@@ -1,0 +1,44 @@
+fragment PredictionStatFields on PredictionStat {
+    date
+    matchesConsidered
+    accuracy
+    brierScore
+    logLoss
+    scoreMae
+    scoreRmse
+}
+
+query EpaPredictionStats(
+    $season: Int!
+    $level: EpaStatLevelFilter
+    $window: EpaStatWindow
+    $windowDays: Int
+) {
+    epa: predictionStats(
+        season: $season
+        source: Epa
+        level: $level
+        window: $window
+        windowDays: $windowDays
+    ) {
+        ...PredictionStatFields
+    }
+    opr: predictionStats(
+        season: $season
+        source: Opr
+        level: $level
+        window: $window
+        windowDays: $windowDays
+    ) {
+        ...PredictionStatFields
+    }
+    winLoss: predictionStats(
+        season: $season
+        source: WinLoss
+        level: $level
+        window: $window
+        windowDays: $windowDays
+    ) {
+        ...PredictionStatFields
+    }
+}

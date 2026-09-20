@@ -11,7 +11,9 @@ import { Award } from "./entities/Award";
 import { TeamEventParticipationSchemas } from "./entities/dyn/team-event-participation";
 import { TeamEpa } from "./entities/TeamEpa";
 import { TeamEpaHistory } from "./entities/TeamEpaHistory";
+import { TeamOpr } from "./entities/TeamOpr";
 import { EpaLiveState } from "./entities/EpaLiveState";
+import { PredictionStat } from "./entities/PredictionStat";
 import { ApiReq } from "./entities/ApiReq";
 import { Analytics } from "./entities/Analytics";
 import { QueryAnalytics } from "./entities/QueryAnalytics";
@@ -40,7 +42,9 @@ export const ENTITIES: MixedList<string | Function | EntitySchema<any>> = [
     ...Object.values(LeagueRankingSchemas),
     TeamEpa,
     TeamEpaHistory,
+    TeamOpr,
     EpaLiveState,
+    PredictionStat,
     BestName,
     ApiReq,
     Analytics,

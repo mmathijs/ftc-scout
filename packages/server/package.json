@@ -26,6 +26,7 @@
         "graphql-ws": "^5.14.1",
         "luxon": "^3.3.0",
         "md5": "^2.3.0",
+        "ml-matrix": "^6.10.4",
         "pg": "^8.11.0",
         "typeorm": "^0.3.16",
         "typeorm-naming-strategies": "^4.1.0",
