@@ -428,6 +428,12 @@ const MIN_SAMPLES_FOR_OPR_SCORING = 15;
 // OPR has no per-team variance model of its own. Playoffs are predicted with the OPR this same
 // event's own quals just produced (step 2 runs before step 3), but never feed back into it or
 // into the season-wide SD - same "predict, don't update" treatment as EPA's playoff handling.
+//
+// Surrogates ARE included in the alliance composition here (unlike EPA/matchesPlayed below) -
+// a surrogate physically played that match and produced part of the alliance's real score, so
+// excluding them would attribute that score to the wrong 2-team matrix row and corrupt the
+// regression for every team in the event, not just the surrogate. Matches calculateOprs'/
+// calculate-opr.ts's canonical per-event OPR (shown on team pages), which does the same.
 function computeOprPredictions(matches: Match[]): {
     quals: ScoredOutcome[];
     playoff: ScoredOutcome[];
@@ -440,8 +446,8 @@ function computeOprPredictions(matches: Match[]): {
     for (let m of matches) {
         let redScore = m.scores.find((s) => s.alliance === Alliance.Red);
         let blueScore = m.scores.find((s) => s.alliance === Alliance.Blue);
-        let redTeams = m.teams.filter((t) => t.alliance === Alliance.Red && !t.surrogate);
-        let blueTeams = m.teams.filter((t) => t.alliance === Alliance.Blue && !t.surrogate);
+        let redTeams = m.teams.filter((t) => t.alliance === Alliance.Red);
+        let blueTeams = m.teams.filter((t) => t.alliance === Alliance.Blue);
         if (!redScore || !blueScore || redTeams.length !== 2 || blueTeams.length !== 2) continue;
 
         if (!eventQuals.has(m.eventCode)) {
@@ -459,8 +465,8 @@ function computeOprPredictions(matches: Match[]): {
     let playoff: ScoredOutcome[] = [];
 
     function predictOne(m: Match, target: ScoredOutcome[]) {
-        let redTeams = m.teams.filter((t) => t.alliance === Alliance.Red && !t.surrogate);
-        let blueTeams = m.teams.filter((t) => t.alliance === Alliance.Blue && !t.surrogate);
+        let redTeams = m.teams.filter((t) => t.alliance === Alliance.Red);
+        let blueTeams = m.teams.filter((t) => t.alliance === Alliance.Blue);
         let get = (t: number) =>
             lastKnownOpr.get(t) ?? (totalStat.count > 0 ? totalStat.mean / 2 : 0);
 
@@ -498,6 +504,9 @@ function computeOprPredictions(matches: Match[]): {
             let { redPts, bluePts } = predictOne(m, quals);
             totalStat = addObservation(addObservation(totalStat, redPts), bluePts);
 
+            // Surrogate appearances don't count as "their" match played, same as Tep's
+            // qualMatchesPlayed - unlike the regression above, this is a participation credit,
+            // not an input to the score attribution.
             let redTeams = m.teams.filter((t) => t.alliance === Alliance.Red && !t.surrogate);
             let blueTeams = m.teams.filter((t) => t.alliance === Alliance.Blue && !t.surrogate);
             for (let t of [...redTeams, ...blueTeams]) {
@@ -509,9 +518,7 @@ function computeOprPredictions(matches: Match[]): {
         let dataTotal: { team1: number; team2: number; result: number }[] = [];
         for (let m of qualsMs) {
             for (let allianceLabel of [Alliance.Red, Alliance.Blue]) {
-                let allianceTeams = m.teams.filter(
-                    (t) => t.alliance === allianceLabel && !t.surrogate
-                );
+                let allianceTeams = m.teams.filter((t) => t.alliance === allianceLabel);
                 let [team1, team2] = allianceTeams.map((t) => t.teamNumber);
                 let s = m.scores.find((sc) => sc.alliance === allianceLabel)!;
                 dataTotal.push({ team1, team2, result: s.totalPoints });
