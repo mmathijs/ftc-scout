@@ -33,6 +33,10 @@ import { TeamEpaHistory } from "../../db/entities/TeamEpaHistory";
 import { teamEpaRankLoader } from "../../db/loaders/team-epa-loader";
 import { TeamEpa } from "../../db/entities/TeamEpa";
 import { TeamOpr } from "../../db/entities/TeamOpr";
+import {
+    teamEpaCategoryRankLoader,
+    teamEpaCategoryHistoryLoader,
+} from "../../db/loaders/team-epa-category-loader";
 
 const QuickStatGQL = new GraphQLObjectType({
     name: "QuickStat",
@@ -145,6 +149,60 @@ const TeamEpaHistoryGQL = new GraphQLObjectType({
         matchTime: nullTy(DateTimeTy),
     },
 });
+
+const TeamEpaCategoryGQL = new GraphQLObjectType({
+    name: "TeamEpaCategory",
+    fields: {
+        season: IntTy,
+        teamNumber: IntTy,
+        category: StrTy,
+        epa: FloatTy,
+        matchesPlayed: IntTy,
+        rank: IntTy,
+    },
+});
+
+async function getTeamEpaCategory(teamNumber: number, season: Season, category: string) {
+    let res = await teamEpaCategoryRankLoader.load(`${season}:${teamNumber}:${category}`);
+    if (!res) return null;
+
+    return {
+        season,
+        teamNumber,
+        category,
+        epa: res.epa,
+        matchesPlayed: res.matchesPlayed,
+        rank: res.rank,
+    };
+}
+
+const TeamEpaGroupGQL = new GraphQLObjectType({
+    name: "TeamEpaGroup",
+    fields: {
+        // Null on seasons with no endgame
+        auto: { type: TeamEpaCategoryGQL },
+        dc: { type: TeamEpaCategoryGQL },
+        eg: { type: TeamEpaCategoryGQL },
+        total: { type: TeamEpaGQL },
+    },
+});
+
+const TeamEpaGroupHistoryGQL = new GraphQLObjectType({
+    name: "TeamEpaGroupHistory",
+    fields: {
+        auto: { type: list(nn(TeamEpaHistoryGQL)) },
+        dc: { type: list(nn(TeamEpaHistoryGQL)) },
+        eg: { type: list(nn(TeamEpaHistoryGQL)) },
+        total: { type: list(nn(TeamEpaHistoryGQL)) },
+    },
+});
+
+async function getTeamEpaCategoryHistory(teamNumber: number, season: Season, category: string) {
+    let rows = await teamEpaCategoryHistoryLoader.load(`${season}:${teamNumber}:${category}`);
+    // Mirrors epaHistory's filter above - matchesPlayed == 0 is the pre-season bootstrap state,
+    // not a real match snapshot.
+    return rows.filter((r) => r.matchesPlayed > 0);
+}
 
 let cachedQSCount: Partial<Record<Season, { count: number; time: number }>> = {};
 let cacheTime = 1000 * 60 * 5; // 5 minutes
@@ -338,6 +396,41 @@ export const TeamGQL: GraphQLObjectType = new GraphQLObjectType({
                         .orderBy("matches_played", "ASC")
                         .getMany()
                 );
+            },
+        },
+
+        epaGroup: {
+            type: TeamEpaGroupGQL,
+            args: { season: IntTy },
+            resolve: async (team, { season }: { season: Season }) => {
+                if (ALL_SEASONS.indexOf(season) == -1) throw "invalid season";
+                let [auto, dc, eg, total] = await Promise.all([
+                    getTeamEpaCategory(team.number, season, "auto"),
+                    getTeamEpaCategory(team.number, season, "dc"),
+                    getTeamEpaCategory(team.number, season, "eg"),
+                    getTeamEpa(team.number, season),
+                ]);
+                return { auto, dc, eg, total };
+            },
+        },
+
+        epaGroupHistory: {
+            type: TeamEpaGroupHistoryGQL,
+            args: { season: IntTy },
+            resolve: async (team, { season }: { season: Season }) => {
+                if (ALL_SEASONS.indexOf(season) == -1) throw "invalid season";
+                let [auto, dc, eg, total] = await Promise.all([
+                    getTeamEpaCategoryHistory(team.number, season, "auto"),
+                    getTeamEpaCategoryHistory(team.number, season, "dc"),
+                    getTeamEpaCategoryHistory(team.number, season, "eg"),
+                    TeamEpaHistory.createQueryBuilder("h")
+                        .where("season = :season", { season })
+                        .andWhere("team_number = :teamNumber", { teamNumber: team.number })
+                        .andWhere("matches_played > 0")
+                        .orderBy("matches_played", "ASC")
+                        .getMany(),
+                ]);
+                return { auto, dc, eg, total };
             },
         },
     }),

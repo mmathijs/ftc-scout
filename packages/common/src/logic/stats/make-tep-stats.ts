@@ -1,12 +1,14 @@
 import { Season } from "../Season";
 import { filterMapTreeList } from "../descriptors/descriptor";
 import { DESCRIPTORS } from "../descriptors/descriptor-list";
+import { titleCase } from "../../utils/string";
 import { Color, NonRankStatColumn, StatSet, StatSetSection, StatType } from "./stat-table";
 
 export const TepStatGroup = {
     Tot: "tot",
     Avg: "avg",
     Opr: "opr",
+    Epa: "epa",
     Min: "min",
     Max: "max",
     Dev: "dev",
@@ -26,6 +28,7 @@ export const TEP_GROUP_COLORS = {
     [TepStatGroup.Tot]: Color.Red,
     [TepStatGroup.Avg]: Color.Purple,
     [TepStatGroup.Opr]: Color.Purple,
+    [TepStatGroup.Epa]: Color.Purple,
     [TepStatGroup.Min]: Color.LightBlue,
     [TepStatGroup.Max]: Color.Blue,
     [TepStatGroup.Dev]: Color.Green,
@@ -35,6 +38,7 @@ export const TEP_GROUP_DATA_TYS = {
     [TepStatGroup.Tot]: StatType.Int,
     [TepStatGroup.Avg]: StatType.Float,
     [TepStatGroup.Opr]: StatType.Float,
+    [TepStatGroup.Epa]: StatType.Float,
     [TepStatGroup.Min]: StatType.Int,
     [TepStatGroup.Max]: StatType.Int,
     [TepStatGroup.Dev]: StatType.Float,
@@ -44,6 +48,7 @@ export const TEP_GROUP_NAMES = {
     [TepStatGroup.Tot]: ["Total", ""],
     [TepStatGroup.Avg]: ["Average", ""],
     [TepStatGroup.Opr]: ["", "Opr"],
+    [TepStatGroup.Epa]: ["", "EPA"],
     [TepStatGroup.Min]: ["Minimum", ""],
     [TepStatGroup.Max]: ["Maximum", ""],
     [TepStatGroup.Dev]: ["", "Standard Deviation"],
@@ -53,9 +58,16 @@ export const TEP_GROUP_DESC = {
     [TepStatGroup.Tot]: "The sum of all points scored in the category.",
     [TepStatGroup.Avg]: "The average number of points scored in the category.",
     [TepStatGroup.Opr]: "Offensive Power Rating.",
+    [TepStatGroup.Epa]: "Expected Points Added, only for auto, teleop, endgame, and total.",
     [TepStatGroup.Min]: "The lowest number of points scored in the category.",
     [TepStatGroup.Max]: "The highest number of points scored in the category.",
     [TepStatGroup.Dev]: "The standard deviation of scores in the category.",
+};
+
+const EPA_CATEGORY_SHORT_NAMES: Record<string, string> = {
+    autoPoints: "auto",
+    dcPoints: "dc",
+    egPoints: "eg",
 };
 
 let statSetCache: Partial<Record<`${Season}-${boolean}-${boolean}`, StatSet<any>>> = {};
@@ -112,26 +124,6 @@ export function getTepStatSet(
                         ty: StatType.Float,
                         val: stats.rp,
                     };
-                },
-            }),
-            new NonRankStatColumn({
-                color: Color.Blue,
-                id: "epa",
-                columnName: "EPA",
-                dialogName: "EPA",
-                titleName: "EPA",
-                // EPA isn't a real column on tep (it's read from team_epa_history at query time -
-                // see dyn/tep.ts's `epa` field resolver) - a correlated subquery picking the same
-                // "last snapshot recorded for this row's own event" value keeps this row-varying
-                // per event, same as every other Tep stat, so the existing ranker/filter SQL
-                // (built around "each of a team's events has its own value, rank by their best")
-                // works for it unmodified. Doesn't match `name()`'s `^\w+$` column-name shortcut,
-                // so it's passed through as raw SQL - see qualifyForTep/name in Records.ts.
-                sqlExpr: `(select teh.epa from team_epa_history teh where teh.season = tep.season and teh.team_number = tep.team_number and teh.event_code = tep.event_code order by teh.matches_played desc limit 1)`,
-                ty: StatType.Float,
-                getNonRankValue: (d: any) => {
-                    const val = d?.stats?.epa;
-                    return val == null ? null : { ty: "float", val };
                 },
             }),
             new NonRankStatColumn({
@@ -305,13 +297,45 @@ export function getTepStatSet(
             .tepColumns()
             .flatMap((t) => TEP_STAT_GROUPS.map((g) => t.getStatColumn(g)));
 
+        let epaStats = descriptor.epaColumns().map((c) => {
+            let shortName =
+                c.dbName == "totalPoints" ? "total" : EPA_CATEGORY_SHORT_NAMES[c.dbName];
+            let sqlExpr =
+                shortName == "total"
+                    ? `(select teh.epa from team_epa_history teh where teh.season = tep.season and teh.team_number = tep.team_number and teh.event_code = tep.event_code order by teh.matches_played desc limit 1)`
+                    : `(select tech.epa from team_epa_category_history tech where tech.season = tep.season and tech.team_number = tep.team_number and tech.event_code = tep.event_code and tech.category = '${shortName}' order by tech.matches_played desc limit 1)`;
+
+            return new NonRankStatColumn({
+                color: TEP_GROUP_COLORS[TepStatGroup.Epa],
+                id: c.id + titleCase(TepStatGroup.Epa),
+                columnName: `${c.columnPrefix} EPA`.trim(),
+                dialogName: c.dialogName,
+                titleName: `${c.fullName} EPA`,
+                sqlExpr,
+                ty: TEP_GROUP_DATA_TYS[TepStatGroup.Epa],
+                getNonRankValue: (d: any) => {
+                    const val = d?.stats?.epaGroup?.[shortName];
+                    return val == null ? null : { ty: "float", val };
+                },
+            });
+        });
+
         let groupSection = new StatSetSection(
             "Match Scores",
             filterMapTreeList(descriptor.getTepTree(remote), (t) => ({
                 id: t.id,
                 name: t.dialogName,
             })),
-            TEP_STAT_GROUPS.map((g) => ({
+            // Cant put EPA in  TEP_STAT_GROUPS, so more jank
+            [
+                TepStatGroup.Tot,
+                TepStatGroup.Avg,
+                TepStatGroup.Opr,
+                TepStatGroup.Epa,
+                TepStatGroup.Min,
+                TepStatGroup.Max,
+                TepStatGroup.Dev,
+            ].map((g) => ({
                 id: g,
                 name: g.toUpperCase(),
                 color: TEP_GROUP_COLORS[g],
@@ -321,7 +345,7 @@ export function getTepStatSet(
 
         statSetCache[key] = new StatSet(
             `tep${season}${remote ? "Remote" : "Trad"}${league ? "League" : ""}`,
-            [...soloStats, ...groupStats, ...eventStats],
+            [...soloStats, ...groupStats, ...epaStats, ...eventStats],
             [soloSection, groupSection, eventSection]
         );
     }

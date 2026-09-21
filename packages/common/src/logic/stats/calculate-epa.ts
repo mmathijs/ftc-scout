@@ -1,11 +1,14 @@
 import { Alliance } from "../Alliance";
-import { Match, filterQualsMatches, hasAllianceScores } from "./shared-stats-utils";
+import { Match, Score, filterQualsMatches, hasAllianceScores } from "./shared-stats-utils";
 
 // Copied methodology from https://statcube.vercel.app/methodology)
 // Did change the factors of margin_signal and the points_signal
 // Also added a rolling refit for higher EPA's
 
 const DAY_MS = 24 * 3600 * 1000;
+
+export type ScoreSelector = (score: Score) => number;
+const DEFAULT_SELECTOR: ScoreSelector = (s) => s.totalPoints;
 
 export interface TaylorsLawFit {
     a: number;
@@ -142,7 +145,8 @@ function matchTimeMs(m: unknown): number | null {
 function collectFitSamples<M extends Match>(
     matches: M[],
     windowStart: number,
-    windowEnd: number
+    windowEnd: number,
+    selector: ScoreSelector
 ): { mean: number; sd: number }[] {
     let byTeam = new Map<number, number[]>();
     for (let m of matches) {
@@ -153,7 +157,7 @@ function collectFitSamples<M extends Match>(
             let allianceTeams = m.teams.filter((tm) => tm.alliance === alliance && !tm.surrogate);
             if (allianceTeams.length !== 2) continue;
             let score = alliance === Alliance.Red ? m.scores.red : m.scores.blue;
-            let val = score.totalPoints;
+            let val = selector(score);
             for (let tm of allianceTeams) {
                 if (!byTeam.has(tm.teamNumber)) byTeam.set(tm.teamNumber, []);
                 byTeam.get(tm.teamNumber)!.push(val);
@@ -262,7 +266,8 @@ function stepMatch<M extends Match>(
     m: M,
     params: EpaParams,
     fit: TaylorsLawFit | null,
-    eligibleForScoring: boolean
+    eligibleForScoring: boolean,
+    selector: ScoreSelector
 ): { history: TeamEpaSnapshot[]; prediction: MatchPrediction } | null {
     if (!hasAllianceScores(m.scores)) return null;
 
@@ -289,8 +294,8 @@ function stepMatch<M extends Match>(
     let b1 = ensure(blueTeams[0].teamNumber);
     let b2 = ensure(blueTeams[1].teamNumber);
 
-    let red = m.scores.red;
-    let blue = m.scores.blue;
+    let redVal = selector(m.scores.red);
+    let blueVal = selector(m.scores.blue);
 
     let predRed = r1.epa + r2.epa;
     let predBlue = b1.epa + b2.epa;
@@ -301,8 +306,7 @@ function stepMatch<M extends Match>(
     let combinedSigma = Math.sqrt(sigmaRed * sigmaRed + sigmaBlue * sigmaBlue);
 
     let predRedWinProb = winProbability(predRed, predBlue, combinedSigma);
-    let actualOutcome =
-        red.totalPoints > blue.totalPoints ? 1 : red.totalPoints < blue.totalPoints ? 0 : 0.5;
+    let actualOutcome = redVal > blueVal ? 1 : redVal < blueVal ? 0 : 0.5;
 
     let prediction: MatchPrediction = {
         matchId,
@@ -312,18 +316,17 @@ function stepMatch<M extends Match>(
         eligibleForScoring,
         predRedScore: predRed,
         predBlueScore: predBlue,
-        actualRedScore: red.totalPoints,
-        actualBlueScore: blue.totalPoints,
+        actualRedScore: redVal,
+        actualBlueScore: blueVal,
     };
 
-    let eM = red.totalPoints - blue.totalPoints - (predRed - predBlue);
+    let eM = redVal - blueVal - (predRed - predBlue);
     let zM = combinedSigma > 0 ? eM / combinedSigma : 0;
     let kMarginRed = normalCdf(zM) - 0.5;
     let kMarginBlue = -kMarginRed;
 
-    let kPointsRed = sigmaRed > 0 ? normalCdf((red.totalPoints - predRed) / sigmaRed) - 0.5 : 0;
-    let kPointsBlue =
-        sigmaBlue > 0 ? normalCdf((blue.totalPoints - predBlue) / sigmaBlue) - 0.5 : 0;
+    let kPointsRed = sigmaRed > 0 ? normalCdf((redVal - predRed) / sigmaRed) - 0.5 : 0;
+    let kPointsBlue = sigmaBlue > 0 ? normalCdf((blueVal - predBlue) / sigmaBlue) - 0.5 : 0;
 
     let seasonMean = core.totalStat.mean;
     let redSignal = params.marginWeight * kMarginRed + params.pointsWeight * kPointsRed;
@@ -366,17 +369,15 @@ function stepMatch<M extends Match>(
         }
     );
 
-    core.totalStat = addObservation(
-        addObservation(core.totalStat, red.totalPoints),
-        blue.totalPoints
-    );
+    core.totalStat = addObservation(addObservation(core.totalStat, redVal), blueVal);
 
     return { history, prediction };
 }
 
 export function computeSeasonEpas<M extends Match>(
     sortedQualMatches: M[],
-    params: EpaParams = DEFAULT_EPA_PARAMS
+    params: EpaParams = DEFAULT_EPA_PARAMS,
+    selector: ScoreSelector = DEFAULT_SELECTOR
 ): SeasonEpaResult {
     let matches = filterQualsMatches(sortedQualMatches).filter((m) => hasAllianceScores(m.scores));
 
@@ -400,7 +401,7 @@ export function computeSeasonEpas<M extends Match>(
     let windowStart = firstTime + params.fitWindowStartDays * DAY_MS;
     let windowEnd = firstTime + params.fitWindowEndDays * DAY_MS;
 
-    let fit = fitTaylorsLaw(collectFitSamples(matches, windowStart, windowEnd));
+    let fit = fitTaylorsLaw(collectFitSamples(matches, windowStart, windowEnd, selector));
     let lastRefitTime = windowEnd;
 
     for (let m of matches) {
@@ -412,13 +413,15 @@ export function computeSeasonEpas<M extends Match>(
             matchTime - lastRefitTime >= params.refitEveryDays * DAY_MS
         ) {
             let trailingStart = matchTime - params.rollingWindowDays * DAY_MS;
-            let refit = fitTaylorsLaw(collectFitSamples(matches, trailingStart, matchTime));
+            let refit = fitTaylorsLaw(
+                collectFitSamples(matches, trailingStart, matchTime, selector)
+            );
             if (refit) fit = refit;
             lastRefitTime = matchTime;
         }
 
         let eligibleForScoring = fit != null && matchTime >= windowEnd;
-        let result = stepMatch(core, m, params, fit, eligibleForScoring);
+        let result = stepMatch(core, m, params, fit, eligibleForScoring, selector);
         if (!result) continue;
         history.push(...result.history);
         predictions.push(result.prediction);
@@ -476,13 +479,13 @@ function accumulateFitSample(
     fitSamplesByTeam: Record<number, number[]>,
     m: { teams: Match["teams"] },
     alliance: Alliance,
-    totalPoints: number
+    value: number
 ) {
     let allianceTeams = m.teams.filter((tm) => tm.alliance === alliance && !tm.surrogate);
     if (allianceTeams.length !== 2) return;
     for (let tm of allianceTeams) {
         if (!fitSamplesByTeam[tm.teamNumber]) fitSamplesByTeam[tm.teamNumber] = [];
-        fitSamplesByTeam[tm.teamNumber].push(totalPoints);
+        fitSamplesByTeam[tm.teamNumber].push(value);
     }
 }
 
@@ -503,7 +506,8 @@ function tryFitFromSamples(fitSamplesByTeam: Record<number, number[]>): TaylorsL
 export function applyMatchIncremental<M extends Match>(
     state: EpaEngineState,
     m: M,
-    params: EpaParams = DEFAULT_EPA_PARAMS
+    params: EpaParams = DEFAULT_EPA_PARAMS,
+    selector: ScoreSelector = DEFAULT_SELECTOR
 ): { history: TeamEpaSnapshot[]; prediction: MatchPrediction } | null {
     if (!hasAllianceScores(m.scores)) return null;
 
@@ -515,13 +519,8 @@ export function applyMatchIncremental<M extends Match>(
 
     if (state.fit == null) {
         if (matchTime >= windowStart && matchTime < windowEnd) {
-            accumulateFitSample(state.fitSamplesByTeam, m, Alliance.Red, m.scores.red.totalPoints);
-            accumulateFitSample(
-                state.fitSamplesByTeam,
-                m,
-                Alliance.Blue,
-                m.scores.blue.totalPoints
-            );
+            accumulateFitSample(state.fitSamplesByTeam, m, Alliance.Red, selector(m.scores.red));
+            accumulateFitSample(state.fitSamplesByTeam, m, Alliance.Blue, selector(m.scores.blue));
         }
         if (matchTime >= windowEnd) {
             state.fit = tryFitFromSamples(state.fitSamplesByTeam);
@@ -530,7 +529,7 @@ export function applyMatchIncremental<M extends Match>(
     }
 
     let eligibleForScoring = state.fit != null && matchTime >= windowEnd;
-    return stepMatch(state, m, params, state.fit, eligibleForScoring);
+    return stepMatch(state, m, params, state.fit, eligibleForScoring, selector);
 }
 
 export interface PredictionMetrics {

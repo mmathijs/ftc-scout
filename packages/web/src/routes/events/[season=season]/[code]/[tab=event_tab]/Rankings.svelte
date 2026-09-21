@@ -30,7 +30,7 @@
         ...(remote ? [] : ["eventRecord"]),
         totalPoints + "Avg",
         ...(remote ? [] : [totalPoints + "Opr"]),
-        "epa",
+        "totalPointsEpa",
         totalPoints + "Max",
     ];
 

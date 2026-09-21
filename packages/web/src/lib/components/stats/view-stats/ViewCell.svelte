@@ -17,7 +17,7 @@
     export let extra = false;
 
     $: stat = stats.getStat(section.getId(row.id, column.id));
-    $: value = stat.getNonRankValue(data);
+    $: value = stat ? stat.getNonRankValue(data) : null;
 </script>
 
 <td class={column.color} class:extra>

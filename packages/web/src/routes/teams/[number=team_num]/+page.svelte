@@ -118,7 +118,12 @@
         {/if}
 
         {#if team.epa}
-            <EpaSection epa={team.epa} history={team.epaHistory ?? []} />
+            <EpaSection
+                epa={team.epa}
+                history={team.epaHistory ?? []}
+                epaGroup={team.epaGroup}
+                epaGroupHistory={team.epaGroupHistory}
+            />
         {/if}
 
         {#each sortedEvents as tep}

@@ -8,6 +8,8 @@
     export let column: StatSectionColumn;
     export let selectedStats: string[];
     export let id: string;
+    // Not all columns have all rows (such as EPA)
+    export let exists = true;
 
     let dispatch = createEventDispatcher();
 
@@ -20,7 +22,9 @@
 
 <td class={column.color}>
     <div>
-        <Checkbox on:click={onClick} checked={selectedStats.some((s) => s == id)} />
+        {#if exists}
+            <Checkbox on:click={onClick} checked={selectedStats.some((s) => s == id)} />
+        {/if}
     </div>
 </td>
 

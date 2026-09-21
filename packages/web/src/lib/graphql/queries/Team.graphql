@@ -44,6 +44,46 @@ query Team($number: Int!, $season: Int!) {
             matchesPlayed
             matchTime
         }
+        epaGroup(season: $season) {
+            auto {
+                epa
+                matchesPlayed
+                rank
+            }
+            dc {
+                epa
+                matchesPlayed
+                rank
+            }
+            eg {
+                epa
+                matchesPlayed
+                rank
+            }
+        }
+        epaGroupHistory(season: $season) {
+            auto {
+                matchId
+                eventCode
+                epa
+                matchesPlayed
+                matchTime
+            }
+            dc {
+                matchId
+                eventCode
+                epa
+                matchesPlayed
+                matchTime
+            }
+            eg {
+                matchId
+                eventCode
+                epa
+                matchesPlayed
+                matchTime
+            }
+        }
         events(season: $season) {
             season
             eventCode

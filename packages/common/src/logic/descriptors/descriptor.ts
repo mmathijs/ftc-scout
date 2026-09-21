@@ -151,6 +151,16 @@ export class Descriptor {
         return this.columns.map((c) => c.tep).filter(notEmpty);
     }
 
+    private static readonly EPA_PHASE_DB_NAMES = [
+        "autoPoints",
+        "dcPoints",
+        "egPoints",
+        "totalPoints",
+    ];
+    epaColumns(): TepComponent[] {
+        return this.tepColumns().filter((c) => Descriptor.EPA_PHASE_DB_NAMES.includes(c.dbName));
+    }
+
     typeSuffix(remote: boolean): "Trad" | "Remote" | "" {
         return remote ? "Remote" : this.hasRemote ? "Trad" : "";
     }

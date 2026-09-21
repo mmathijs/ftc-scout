@@ -2,12 +2,15 @@ import {
     Alliance,
     applyMatchIncremental,
     DEFAULT_EPA_PARAMS,
+    DESCRIPTORS,
     EpaEngineState,
     FrontendMatch,
     MatchPrediction,
     predictMatch,
     Season,
     SeasonEpaResult,
+    ScoreSelector,
+    Station,
     addObservation,
     computeSeasonEpas,
     emptyRunningStat,
@@ -22,6 +25,8 @@ import { Match } from "../entities/Match";
 import { TeamEpa } from "../entities/TeamEpa";
 import { TeamOpr } from "../entities/TeamOpr";
 import { TeamEpaHistory } from "../entities/TeamEpaHistory";
+import { TeamEpaCategory } from "../entities/TeamEpaCategory";
+import { TeamEpaCategoryHistory } from "../entities/TeamEpaCategoryHistory";
 import { DataHasBeenLoaded } from "../entities/DataHasBeenLoaded";
 import { EpaLiveState } from "../entities/EpaLiveState";
 import { PredictionLevel, PredictionSource, PredictionStat } from "../entities/PredictionStat";
@@ -572,6 +577,58 @@ function toHistoryRow(
         matchTime: matchTimeByKey.get(`${h.eventCode}:${h.matchId}`) ?? null,
     });
 }
+const EPA_CATEGORY_SHORT_NAMES: Record<string, string> = {
+    autoPoints: "auto",
+    dcPoints: "dc",
+    egPoints: "eg",
+};
+function epaCategoriesFor(season: Season): { shortName: string; selector: ScoreSelector }[] {
+    return DESCRIPTORS[season]
+        .epaColumns()
+        .filter((c) => c.dbName != "totalPoints")
+        .map((c) => ({
+            shortName: EPA_CATEGORY_SHORT_NAMES[c.dbName],
+            selector: (s) => c.make(s, Station.One),
+        }));
+}
+
+function toTeamEpaCategoryRow(
+    season: Season,
+    teamNumber: number,
+    category: string,
+    engineState: EpaEngineState
+): TeamEpaCategory {
+    let state = engineState.teamEpas[teamNumber];
+    return TeamEpaCategory.create({
+        season,
+        teamNumber,
+        category,
+        epa: state.epa,
+        matchesPlayed: state.matchesPlayed,
+        seasonMean: engineState.totalStat.mean,
+        seasonSd: stdDev(engineState.totalStat),
+        fitA: engineState.fit?.a ?? null,
+        fitB: engineState.fit?.b ?? null,
+    });
+}
+
+function toCategoryHistoryRow(
+    season: Season,
+    category: string,
+    h: TeamEpaSnapshot,
+    matchTimeByKey: Map<string, Date | null>
+): TeamEpaCategoryHistory {
+    return TeamEpaCategoryHistory.create({
+        season,
+        category,
+        eventCode: h.eventCode,
+        matchId: h.matchId,
+        teamNumber: h.teamNumber,
+        epa: h.epa,
+        matchesPlayed: h.matchesPlayed,
+        matchTime: matchTimeByKey.get(`${h.eventCode}:${h.matchId}`) ?? null,
+    });
+}
 
 export async function computeAndSaveEpas(season: Season) {
     let matches = await DATA_SOURCE.getRepository(Match)
@@ -628,6 +685,35 @@ export async function computeAndSaveEpas(season: Season) {
             "matchesPlayed",
         ]);
         await new Promise((resolve) => setImmediate(resolve));
+    }
+    let categoryEngineStates: Record<string, EpaEngineState> = {};
+    for (let { shortName, selector } of epaCategoriesFor(season)) {
+        let categoryResult = computeSeasonEpas(frontendMatches, DEFAULT_EPA_PARAMS, selector);
+        let categoryEngineState = seedEngineState(categoryResult);
+        categoryEngineStates[shortName] = categoryEngineState;
+
+        let categoryRows = Object.keys(categoryResult.teamEpas).map((teamNumber) =>
+            toTeamEpaCategoryRow(season, +teamNumber, shortName, categoryEngineState)
+        );
+        await upsertChunked(
+            DATA_SOURCE.getRepository(TeamEpaCategory),
+            categoryRows,
+            ["season", "teamNumber", "category"],
+            HISTORY_CHUNK_SIZE
+        );
+
+        for (let i = 0; i < categoryResult.history.length; i += HISTORY_CHUNK_SIZE) {
+            let chunk = categoryResult.history
+                .slice(i, i + HISTORY_CHUNK_SIZE)
+                .map((h) => toCategoryHistoryRow(season, shortName, h, matchTimeByKey));
+            await DATA_SOURCE.getRepository(TeamEpaCategoryHistory).upsert(chunk, [
+                "season",
+                "teamNumber",
+                "category",
+                "matchesPlayed",
+            ]);
+            await new Promise((resolve) => setImmediate(resolve));
+        }
     }
 
     // Not filtered by eligibleForScoring - that gate exists for backtesting the algorithm itself
@@ -702,7 +788,10 @@ export async function computeAndSaveEpas(season: Season) {
     await DATA_SOURCE.getRepository(EpaLiveState).save(
         EpaLiveState.create({
             season,
-            engineState: engineState as unknown as Record<string, unknown>,
+            engineState: {
+                total: engineState,
+                categories: categoryEngineStates,
+            } as unknown as Record<string, unknown>,
             lastMatchTime: result.lastMatch?.time != null ? new Date(result.lastMatch.time) : null,
             lastMatchId: result.lastMatch?.matchId ?? null,
             lastEventCode: result.lastMatch?.eventCode ?? null,
@@ -720,7 +809,12 @@ export async function incrementallyUpdateEpas(season: Season) {
     let liveState = await EpaLiveState.findOneBy({ season });
     if (!liveState) return; // No full replay has ever run for this season yet - nothing to resume from.
 
-    let engineState = liveState.engineState as unknown as EpaEngineState;
+    let savedState = liveState.engineState as unknown as {
+        total: EpaEngineState;
+        categories: Record<string, EpaEngineState>;
+    };
+    let engineState = savedState.total;
+    let categories = epaCategoriesFor(season);
 
     let qb = DATA_SOURCE.getRepository(Match)
         .createQueryBuilder("m")
@@ -779,6 +873,30 @@ export async function incrementallyUpdateEpas(season: Season) {
         predictions.push(result.prediction);
     }
 
+    // Per-category EPA all a bit jank
+    let categoryTouchedTeams: Record<string, Set<number>> = {};
+    let categoryHistorySnapshots: Record<string, TeamEpaSnapshot[]> = {};
+    for (let { shortName, selector } of categories) {
+        let categoryState = savedState.categories[shortName];
+        let touched = new Set<number>();
+        let snapshots: TeamEpaSnapshot[] = [];
+        for (let m of newMatches) {
+            let result = applyMatchIncremental(
+                categoryState,
+                m.toFrontend(),
+                DEFAULT_EPA_PARAMS,
+                selector
+            );
+            if (!result) continue;
+            for (let h of result.history) {
+                touched.add(h.teamNumber);
+                snapshots.push(h);
+            }
+        }
+        categoryTouchedTeams[shortName] = touched;
+        categoryHistorySnapshots[shortName] = snapshots;
+    }
+
     let teamRows = [...touchedTeams].map((teamNumber) =>
         toTeamEpaRow(season, teamNumber, engineState)
     );
@@ -805,6 +923,32 @@ export async function incrementallyUpdateEpas(season: Season) {
         await new Promise((resolve) => setImmediate(resolve));
     }
 
+    for (let { shortName } of categories) {
+        let categoryRows = [...categoryTouchedTeams[shortName]].map((teamNumber) =>
+            toTeamEpaCategoryRow(season, teamNumber, shortName, savedState.categories[shortName])
+        );
+        await upsertChunked(
+            DATA_SOURCE.getRepository(TeamEpaCategory),
+            categoryRows,
+            ["season", "teamNumber", "category"],
+            HISTORY_CHUNK_SIZE
+        );
+
+        let snapshots = categoryHistorySnapshots[shortName];
+        for (let i = 0; i < snapshots.length; i += HISTORY_CHUNK_SIZE) {
+            let chunk = snapshots
+                .slice(i, i + HISTORY_CHUNK_SIZE)
+                .map((h) => toCategoryHistoryRow(season, shortName, h, matchTimeByKey));
+            await DATA_SOURCE.getRepository(TeamEpaCategoryHistory).upsert(chunk, [
+                "season",
+                "teamNumber",
+                "category",
+                "matchesPlayed",
+            ]);
+            await new Promise((resolve) => setImmediate(resolve));
+        }
+    }
+
     // Not filtered by eligibleForScoring - see computeAndSaveEpas' comment on the same choice.
     await addDailyStats(
         season,
@@ -817,7 +961,10 @@ export async function incrementallyUpdateEpas(season: Season) {
     await DATA_SOURCE.getRepository(EpaLiveState).save(
         EpaLiveState.create({
             season,
-            engineState: engineState as unknown as Record<string, unknown>,
+            engineState: {
+                total: engineState,
+                categories: savedState.categories,
+            } as unknown as Record<string, unknown>,
             lastMatchTime: matchTimeOf(last),
             lastMatchId: last.id,
             lastEventCode: last.eventCode,

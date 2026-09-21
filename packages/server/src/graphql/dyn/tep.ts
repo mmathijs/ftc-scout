@@ -1,13 +1,68 @@
-import { DESCRIPTORS, Descriptor, FloatTy, IntTy, Season, nn, notEmpty } from "@ftc-scout/common";
+import {
+    DESCRIPTORS,
+    Descriptor,
+    FloatTy,
+    IntTy,
+    Season,
+    nn,
+    notEmpty,
+    nullTy,
+} from "@ftc-scout/common";
 import { GraphQLFieldConfig, GraphQLObjectType } from "graphql";
 import { TeamEventParticipation } from "../../db/entities/dyn/team-event-participation";
 import { LeagueRanking } from "../../db/entities/dyn/league-ranking";
 import { teamEpaLoader, teamEpaHistoryLoader } from "../../db/loaders/team-epa-loader";
+import {
+    teamEpaCategoryLoader,
+    teamEpaCategoryHistoryLoader,
+} from "../../db/loaders/team-epa-category-loader";
 
 type TepLike = (TeamEventParticipation | LeagueRanking) & {
     season: Season;
     isRemote: boolean;
 };
+
+const EPA_CATEGORY_SHORT_NAMES: Record<string, string> = {
+    autoPoints: "auto",
+    dcPoints: "dc",
+    egPoints: "eg",
+};
+
+function epaCategoryField(category: string): GraphQLFieldConfig<any, any> {
+    return {
+        ...nullTy(FloatTy),
+        resolve: async (tep: TepLike) => {
+            if (!("eventCode" in tep)) {
+                return (
+                    (
+                        await teamEpaCategoryLoader.load(
+                            `${tep.season}:${tep.teamNumber}:${category}`
+                        )
+                    )?.epa ?? null
+                );
+            }
+            let hist = await teamEpaCategoryHistoryLoader.load(
+                `${tep.season}:${tep.teamNumber}:${category}`
+            );
+            let atEvent = hist.filter((h) => h.eventCode == tep.eventCode);
+            return atEvent.length > 0 ? atEvent[atEvent.length - 1].epa : null;
+        },
+    };
+}
+
+function totalEpaField(): GraphQLFieldConfig<any, any> {
+    return {
+        ...FloatTy,
+        resolve: async (tep: TepLike) => {
+            if (!("eventCode" in tep)) {
+                return (await teamEpaLoader.load(`${tep.season}:${tep.teamNumber}`))?.epa ?? null;
+            }
+            let hist = await teamEpaHistoryLoader.load(`${tep.season}:${tep.teamNumber}`);
+            let atEvent = hist.filter((h) => h.eventCode == tep.eventCode);
+            return atEvent.length > 0 ? atEvent[atEvent.length - 1].epa : null;
+        },
+    };
+}
 
 export function makeTepTypes(descriptor: Descriptor): GraphQLObjectType[] {
     let l = [make(descriptor, false), descriptor.hasRemote ? make(descriptor, true) : null];
@@ -36,6 +91,19 @@ function make(descriptor: Descriptor, remote: boolean): GraphQLObjectType {
         fields: innerFields,
     });
 
+    let epaGroupFields = {} as Record<string, GraphQLFieldConfig<any, any>>;
+    for (let c of descriptor.epaColumns()) {
+        epaGroupFields[c.dbName == "totalPoints" ? "total" : EPA_CATEGORY_SHORT_NAMES[c.dbName]] =
+            c.dbName == "totalPoints"
+                ? totalEpaField()
+                : epaCategoryField(EPA_CATEGORY_SHORT_NAMES[c.dbName]);
+    }
+
+    let epaGroupInner = new GraphQLObjectType({
+        name: `TeamEventStats${descriptor.season}${nameSuffix}EpaGroup`,
+        fields: epaGroupFields,
+    });
+
     let hasTb2 = descriptor.rankings.tb != "LosingScore";
 
     let outer = new GraphQLObjectType({
@@ -53,22 +121,8 @@ function make(descriptor: Descriptor, remote: boolean): GraphQLObjectType {
             max: { type: nn(inner) },
             dev: { type: nn(inner) },
             opr: { type: nn(inner) },
-            epa: {
-                ...FloatTy,
-                resolve: async (tep: TepLike) => {
-                    // no event fallback
-                    if (!("eventCode" in tep)) {
-                        return (
-                            (await teamEpaLoader.load(`${tep.season}:${tep.teamNumber}`))?.epa ??
-                            null
-                        );
-                    }
-                    // Find last (qual/epa updated) match of event
-                    let hist = await teamEpaHistoryLoader.load(`${tep.season}:${tep.teamNumber}`);
-                    let atEvent = hist.filter((h) => h.eventCode == tep.eventCode);
-                    return atEvent.length > 0 ? atEvent[atEvent.length - 1].epa : null;
-                },
-            },
+            epaGroup: { type: nn(epaGroupInner), resolve: (tep: TepLike) => tep },
+            epa: totalEpaField(),
         },
     });
 
