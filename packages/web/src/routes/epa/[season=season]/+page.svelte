@@ -84,7 +84,7 @@
             a team contributes to their alliance beyond an average team. This page tracks how well
             it - and a couple of other team-strength models - actually predict who wins. Looking for
             team rankings? See the
-            <a href={`/records/${season}/rankings`}>Season Records rankings tab</a>.
+            <a href={`/records/${season}/teams`}>Season Records teams tab</a>.
         </p>
 
         <Form id="epa-options" noscriptSubmit>

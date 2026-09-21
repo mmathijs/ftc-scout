@@ -29,6 +29,15 @@ import { AdvancementScore } from "../db/entities/AdvancementScore";
 
 const pre = "/rest/v1/";
 
+// One-off testing knob: when set, teamEvents (a team's OWN event history for the season) hides
+// any event that started after this cutoff - so a third-party tool hitting this REST API against
+// this cutoff sees exactly what would have been knowable at that point in time, not the full
+// season with hindsight. Only teamEvents is filtered (not eventTeams/eventMatches for the target
+// event itself, which are supposed to show that whole event). No effect unless the env var is set.
+const AUTOSCOUT_CUTOFF_DATE = process.env.AUTOSCOUT_CUTOFF_DATE
+    ? new Date(process.env.AUTOSCOUT_CUTOFF_DATE)
+    : null;
+
 function isSeason(season: number): season is Season {
     return (ALL_SEASONS as readonly number[]).indexOf(season) != -1;
 }
@@ -143,7 +152,21 @@ async function teamEvents(req: Request<{ number: string; season: string }>, res:
         return;
     }
 
-    res.send(await getTeps(season, { teamNumber }));
+    let teps = await getTeps(season, { teamNumber });
+
+    if (AUTOSCOUT_CUTOFF_DATE) {
+        let events = await Event.findBy({
+            season,
+            code: In(teps.map((t: any) => t.eventCode)),
+        });
+        let startByCode = new Map(events.map((e) => [e.code, e.start]));
+        teps = teps.filter((t: any) => {
+            let start = startByCode.get(t.eventCode);
+            return start != null && new Date(start as any) <= AUTOSCOUT_CUTOFF_DATE!;
+        });
+    }
+
+    res.send(teps);
 }
 
 async function teamAwards(req: Request<{ number: string }>, res: Response) {

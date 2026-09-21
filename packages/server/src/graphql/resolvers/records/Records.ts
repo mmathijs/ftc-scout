@@ -37,9 +37,6 @@ import { FilterGQL, TyFilterGQL, filterGQLToSql, isFilteringOn } from "./filter-
 import { MatchScore } from "../../../db/entities/dyn/match-score";
 import { MatchGQL, singleSeasonScoreAwareMatchLoader } from "../Match";
 import graphqlFields from "graphql-fields";
-import { TeamEpaGQL, TeamOprGQL } from "../Team";
-import { TeamEpa } from "../../../db/entities/TeamEpa";
-import { TeamOpr } from "../../../db/entities/TeamOpr";
 import { PredictionStat } from "../../../db/entities/PredictionStat";
 
 function RecordGqlTy(wrapped: GraphQLOutputType, namePrefix: string): GraphQLObjectType {
@@ -74,24 +71,6 @@ const SpecificAlliance = new GraphQLObjectType({
 
 const TepRecordsGql = wr(nn(RecordGqlTy(TeamEventParticipationGQL, "Tep")));
 const MatchRecordsGql = wr(nn(RecordGqlTy(SpecificAlliance, "Match")));
-
-const EpaRecordsGql = new GraphQLObjectType({
-    name: "EpaRecords",
-    fields: {
-        data: listTy(wr(nn(TeamEpaGQL))),
-        offset: IntTy,
-        count: IntTy,
-    },
-});
-
-const OprRecordsGql = new GraphQLObjectType({
-    name: "OprRecords",
-    fields: {
-        data: listTy(wr(nn(TeamOprGQL))),
-        offset: IntTy,
-        count: IntTy,
-    },
-});
 
 // "All" combines Quals + Playoff; Quals/Playoff isolate one or the other.
 const EpaStatLevelFilter = { All: "All", Quals: "Quals", Playoff: "Playoff" } as const;
@@ -269,21 +248,11 @@ export const RecordQueries: Record<string, GraphQLFieldConfig<any, any>> = {
                 .addSelect(`${rankerSql}`, "ranker")
                 .addSelect(name(ns, defaultRankerSqlName))
                 .leftJoin("event", "e", "tep.season = e.season AND tep.event_code = e.code")
-                .leftJoin(
-                    "team_epa",
-                    "team_epa",
-                    "tep.season = team_epa.season AND tep.team_number = team_epa.team_number"
-                )
                 .andWhere("has_stats")
                 .andWhere("NOT e.modified_rules");
 
             let countQ = Tep.createQueryBuilder("tep")
                 .leftJoin("event", "e", "tep.season = e.season AND tep.event_code = e.code")
-                .leftJoin(
-                    "team_epa",
-                    "team_epa",
-                    "tep.season = team_epa.season AND tep.team_number = team_epa.team_number"
-                )
                 .where("has_stats")
                 .andWhere("NOT e.modified_rules");
 
@@ -389,112 +358,6 @@ export const RecordQueries: Record<string, GraphQLFieldConfig<any, any>> = {
                 filterRank: +r.filter_rank,
                 noFilterSkipRank: +r.no_filter_skip_rank,
                 filterSkipRank: +r.filter_skip_rank,
-            }));
-
-            return { data, offset: skip, count };
-        },
-    },
-    epaRecords: {
-        type: EpaRecordsGql,
-        args: {
-            season: IntTy,
-            sortDir: { type: SortDirGQL },
-            skip: IntTy,
-            take: IntTy,
-        },
-        async resolve(
-            _source,
-            {
-                season,
-                sortDir,
-                skip,
-                take,
-            }: { season: Season; sortDir: SortDir | null; skip: number; take: number }
-        ) {
-            take = Math.min(take, 50);
-
-            let ns = DATA_SOURCE.namingStrategy;
-            let colSql = name(ns, "epa");
-            let dirSql = (sortDir ?? SortDir.Desc) == SortDir.Asc ? "ASC" : "DESC";
-
-            let ranked = DATA_SOURCE.getRepository(TeamEpa)
-                .createQueryBuilder("e")
-                .select("*")
-                .addSelect(`rank() over (order by ${colSql} desc)`, "rank")
-                .where("season = :season", { season });
-
-            let count = await DATA_SOURCE.getRepository(TeamEpa)
-                .createQueryBuilder("e")
-                .where("season = :season", { season })
-                .getCount();
-
-            let rows = await DATA_SOURCE.createQueryBuilder()
-                .addCommonTableExpression(ranked, "ranked")
-                .from("ranked", "ranked")
-                .orderBy(colSql, dirSql as "ASC" | "DESC")
-                .offset(skip)
-                .limit(take)
-                .getRawMany();
-
-            let data = rows.map((r) => ({
-                season,
-                teamNumber: +r.team_number,
-                epa: +r.epa,
-                matchesPlayed: +r.matches_played,
-                rank: +r.rank,
-            }));
-
-            return { data, offset: skip, count };
-        },
-    },
-    oprRecords: {
-        type: OprRecordsGql,
-        args: {
-            season: IntTy,
-            sortDir: { type: SortDirGQL },
-            skip: IntTy,
-            take: IntTy,
-        },
-        async resolve(
-            _source,
-            {
-                season,
-                sortDir,
-                skip,
-                take,
-            }: { season: Season; sortDir: SortDir | null; skip: number; take: number }
-        ) {
-            take = Math.min(take, 50);
-
-            let ns = DATA_SOURCE.namingStrategy;
-            let colSql = name(ns, "opr");
-            let dirSql = (sortDir ?? SortDir.Desc) == SortDir.Asc ? "ASC" : "DESC";
-
-            let ranked = DATA_SOURCE.getRepository(TeamOpr)
-                .createQueryBuilder("o")
-                .select("*")
-                .addSelect(`rank() over (order by ${colSql} desc)`, "rank")
-                .where("season = :season", { season });
-
-            let count = await DATA_SOURCE.getRepository(TeamOpr)
-                .createQueryBuilder("o")
-                .where("season = :season", { season })
-                .getCount();
-
-            let rows = await DATA_SOURCE.createQueryBuilder()
-                .addCommonTableExpression(ranked, "ranked")
-                .from("ranked", "ranked")
-                .orderBy(colSql, dirSql as "ASC" | "DESC")
-                .offset(skip)
-                .limit(take)
-                .getRawMany();
-
-            let data = rows.map((r) => ({
-                season,
-                teamNumber: +r.team_number,
-                opr: +r.opr,
-                matchesPlayed: +r.matches_played,
-                rank: +r.rank,
             }));
 
             return { data, offset: skip, count };

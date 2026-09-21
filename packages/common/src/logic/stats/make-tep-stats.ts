@@ -120,7 +120,14 @@ export function getTepStatSet(
                 columnName: "EPA",
                 dialogName: "EPA",
                 titleName: "EPA",
-                sqlExpr: "epa",
+                // EPA isn't a real column on tep (it's read from team_epa_history at query time -
+                // see dyn/tep.ts's `epa` field resolver) - a correlated subquery picking the same
+                // "last snapshot recorded for this row's own event" value keeps this row-varying
+                // per event, same as every other Tep stat, so the existing ranker/filter SQL
+                // (built around "each of a team's events has its own value, rank by their best")
+                // works for it unmodified. Doesn't match `name()`'s `^\w+$` column-name shortcut,
+                // so it's passed through as raw SQL - see qualifyForTep/name in Records.ts.
+                sqlExpr: `(select teh.epa from team_epa_history teh where teh.season = tep.season and teh.team_number = tep.team_number and teh.event_code = tep.event_code order by teh.matches_played desc limit 1)`,
                 ty: StatType.Float,
                 getNonRankValue: (d: any) => {
                     const val = d?.stats?.epa;

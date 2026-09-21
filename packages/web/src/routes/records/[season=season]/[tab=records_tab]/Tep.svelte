@@ -19,6 +19,7 @@
     $: defaultStats = [
         "team",
         totalPoints + "Opr",
+        "epa",
         "autoPointsOpr",
         "dcPointsOpr",
         ...(descriptor.hasEndgame ? ["egPointsOpr"] : []),

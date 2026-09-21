@@ -7,7 +7,7 @@
     import WidthProvider from "$lib/components/WidthProvider.svelte";
     import { page } from "$app/stores";
     import TabbedCard from "$lib/components/tabs/TabbedCard.svelte";
-    import { faBolt, faHashtag, faTrophy } from "@fortawesome/free-solid-svg-icons";
+    import { faBolt, faHashtag } from "@fortawesome/free-solid-svg-icons";
     import TabContent from "$lib/components/tabs/TabContent.svelte";
     import { browser } from "$app/environment";
     import { afterNavigate, goto } from "$app/navigation";
@@ -34,7 +34,6 @@
     import { PAGE_EC_DC } from "$lib/util/search-params/int";
     import Head from "$lib/components/Head.svelte";
     import Match from "./Match.svelte";
-    import Rankings from "./Rankings.svelte";
     import EventTypeSelect from "../../../../lib/components/ui/form/EventTypeSelect.svelte";
 
     function go(tab: string, season: Season) {
@@ -64,7 +63,6 @@
     export let data: PageData;
     $: tepData = data.tepData;
     $: matchData = data.matchData;
-    $: rankingsData = data.rankingsData;
 
     let focusedTeam: number | null = null;
     let focusedTeamName: string | null;
@@ -101,9 +99,7 @@
 </script>
 
 <Head
-    title={`${season} ${
-        $page.params.tab == "teams" ? "Team" : $page.params.tab == "rankings" ? "EPA/OPR" : "Match"
-    } Records | FTCScout`}
+    title={`${season} ${$page.params.tab == "teams" ? "Team" : "Match"} Records | FTCScout`}
     description="Records and high scores for the {$page.params.season} season."
 />
 
@@ -173,7 +169,6 @@
         tabs={[
             [faHashtag, "Teams", "teams", true],
             [faBolt, "Matches", "matches", true],
-            [faTrophy, "Rankings", "rankings", true],
         ]}
         bind:selectedTab
     >
@@ -183,10 +178,6 @@
 
         <TabContent name="matches">
             <Match {matchData} {focusedTeam} />
-        </TabContent>
-
-        <TabContent name="rankings">
-            <Rankings {rankingsData} {focusedTeam} />
         </TabContent>
     </TabbedCard>
 </WidthProvider>

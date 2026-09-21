@@ -206,7 +206,7 @@ async function addDailyStats(
 // No fit yet (an early-season event's own playoffs, before the season-wide fit exists) isn't
 // treated as "unscoreable" - predictMatch degrades to a neutral 50/50 guess, same as every other
 // data-starved prediction here, rather than silently skipping it.
-async function computePlayoffPredictions(
+export async function computePlayoffPredictions(
     season: Season,
     qualsResult: SeasonEpaResult,
     qualsMatchTimeByKey: Map<string, Date | null>

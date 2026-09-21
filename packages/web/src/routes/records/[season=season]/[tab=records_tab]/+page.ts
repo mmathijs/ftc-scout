@@ -3,16 +3,13 @@ import type { PageLoad } from "./$types";
 import { getData } from "$lib/graphql/getData";
 import { getClient } from "$lib/graphql/client";
 import {
-    EpaRecordsDocument,
     MatchRecordsDocument,
-    OprRecordsDocument,
     RegionOption as RegionOptionGQL,
     EventTypeOption as EventTypeOptionGQL,
     RemoteOption as RemoteOptionGQL,
     SortDir as SortDirGQL,
     TepRecordsDocument,
 } from "$lib/graphql/generated/graphql-operations";
-import { RankingMetric, RANKING_METRIC_EC_DC } from "./ranking-options";
 import { PAGE_EC_DC } from "$lib/util/search-params/int";
 import { PAGE_SIZE } from "./+page.svelte";
 import { FILTER_EC_DC, SORT_DIR_EC_DC, STAT_EC_DC } from "$lib/util/search-params/stats";
@@ -62,23 +59,6 @@ export const load: PageLoad = ({ fetch, params, url }) => {
                 start: dateToStr(start),
                 end: dateToStr(end),
             }),
-        };
-    } else if (params.tab == "rankings") {
-        let metric = RANKING_METRIC_EC_DC.decode(url.searchParams.get("metric"));
-        let sortDir = SORT_DIR_EC_DC.decode(url.searchParams.get("sort-dir")) as SortDirGQL;
-
-        let page = PAGE_EC_DC.decode(url.searchParams.get("page"));
-        let skip = (page - 1) * PAGE_SIZE;
-        let take = PAGE_SIZE;
-
-        let client = getClient(fetch);
-
-        return {
-            rankingsMetric: metric,
-            rankingsData:
-                metric == RankingMetric.Opr
-                    ? getData(client, OprRecordsDocument, { season, skip, take, sortDir })
-                    : getData(client, EpaRecordsDocument, { season, skip, take, sortDir }),
         };
     } else {
         let stats = getMatchStatSet(season, false);

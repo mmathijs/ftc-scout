@@ -1,3 +1,3 @@
 export function match(param: string): boolean {
-    return param == "matches" || param == "teams" || param == "rankings";
+    return param == "matches" || param == "teams";
 }
