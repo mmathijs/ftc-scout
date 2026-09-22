@@ -68,6 +68,7 @@ const EPA_CATEGORY_SHORT_NAMES: Record<string, string> = {
     autoPoints: "auto",
     dcPoints: "dc",
     egPoints: "eg",
+    totalPointsNp: "np",
 };
 
 let statSetCache: Partial<Record<`${Season}-${boolean}-${boolean}`, StatSet<any>>> = {};
@@ -319,22 +320,6 @@ export function getTepStatSet(
                 },
             });
         });
-
-        epaStats.push(
-            new NonRankStatColumn({
-                color: TEP_GROUP_COLORS[TepStatGroup.Epa],
-                id: "np" + titleCase(TepStatGroup.Epa),
-                columnName: "NP EPA",
-                dialogName: "No Penalty",
-                titleName: "No-Penalty EPA",
-                sqlExpr: `(select tech.epa from team_epa_category_history tech where tech.season = tep.season and tech.team_number = tep.team_number and tech.event_code = tep.event_code and tech.category = 'np' order by tech.matches_played desc limit 1)`,
-                ty: TEP_GROUP_DATA_TYS[TepStatGroup.Epa],
-                getNonRankValue: (d: any) => {
-                    const val = d?.stats?.epaGroup?.np;
-                    return val == null ? null : { ty: "float", val };
-                },
-            })
-        );
 
         let groupSection = new StatSetSection(
             "Match Scores",

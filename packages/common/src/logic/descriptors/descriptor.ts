@@ -156,6 +156,7 @@ export class Descriptor {
         "dcPoints",
         "egPoints",
         "totalPoints",
+        "totalPointsNp",
     ];
     epaColumns(): TepComponent[] {
         return this.tepColumns().filter((c) => Descriptor.EPA_PHASE_DB_NAMES.includes(c.dbName));

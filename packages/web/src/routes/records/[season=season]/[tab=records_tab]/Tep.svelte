@@ -23,7 +23,7 @@
         "dcPointsEpa",
         ...(descriptor.hasEndgame ? ["egPointsEpa"] : []),
         "totalPointsEpa",
-        "npEpa",
+        "totalPointsNpEpa",
         "autoPointsOpr",
         "dcPointsOpr",
         ...(descriptor.hasEndgame ? ["egPointsOpr"] : []),

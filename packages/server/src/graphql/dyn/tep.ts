@@ -26,6 +26,7 @@ const EPA_CATEGORY_SHORT_NAMES: Record<string, string> = {
     autoPoints: "auto",
     dcPoints: "dc",
     egPoints: "eg",
+    totalPointsNp: "np",
 };
 
 function epaCategoryField(category: string): GraphQLFieldConfig<any, any> {
@@ -98,7 +99,6 @@ function make(descriptor: Descriptor, remote: boolean): GraphQLObjectType {
                 ? totalEpaField()
                 : epaCategoryField(EPA_CATEGORY_SHORT_NAMES[c.dbName]);
     }
-    epaGroupFields["np"] = epaCategoryField("np");
 
     let epaGroupInner = new GraphQLObjectType({
         name: `TeamEventStats${descriptor.season}${nameSuffix}EpaGroup`,

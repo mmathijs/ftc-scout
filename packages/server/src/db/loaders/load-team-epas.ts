@@ -611,17 +611,17 @@ const EPA_CATEGORY_SHORT_NAMES: Record<string, string> = {
     autoPoints: "auto",
     dcPoints: "dc",
     egPoints: "eg",
+    totalPointsNp: "np",
 };
 
 function epaCategoriesFor(season: Season): { shortName: string; selector: ScoreSelector }[] {
-    let fromDescriptor: { shortName: string; selector: ScoreSelector }[] = DESCRIPTORS[season]
+    return DESCRIPTORS[season]
         .epaColumns()
         .filter((c) => c.dbName != "totalPoints")
         .map((c) => ({
             shortName: EPA_CATEGORY_SHORT_NAMES[c.dbName],
             selector: (s: Score) => c.make(s, Station.One),
         }));
-    return [...fromDescriptor, { shortName: "np", selector: (s: Score) => s.totalPointsNp }];
 }
 
 function toTeamEpaCategoryRow(
