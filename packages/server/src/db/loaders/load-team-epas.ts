@@ -7,6 +7,7 @@ import {
     FrontendMatch,
     MatchPrediction,
     predictMatch,
+    Score,
     Season,
     SeasonEpaResult,
     ScoreSelector,
@@ -35,6 +36,35 @@ import { TeamMatchParticipation } from "../entities/TeamMatchParticipation";
 
 function matchTimeOf(m: Match): Date | null {
     return m.actualStartTime ?? m.scheduledStartTime ?? m.postResultTime;
+}
+
+function realScoreMap(matches: { eventCode: string; id: number; scores: Score[] }[]) {
+    let byKey = new Map<string, { redPts: number; bluePts: number }>();
+    for (let m of matches) {
+        let red = m.scores.find((s) => s.alliance === Alliance.Red);
+        let blue = m.scores.find((s) => s.alliance === Alliance.Blue);
+        if (red && blue)
+            byKey.set(`${m.eventCode}:${m.id}`, {
+                redPts: red.totalPoints,
+                bluePts: blue.totalPoints,
+            });
+    }
+    return byKey;
+}
+function adjustToRealScore(
+    predictions: MatchPrediction[],
+    realScores: Map<string, { redPts: number; bluePts: number }>
+): MatchPrediction[] {
+    return predictions.map((p) => {
+        let real = realScores.get(`${p.eventCode}:${p.matchId}`);
+        if (!real) return p;
+        return {
+            ...p,
+            actualOutcome: real.redPts > real.bluePts ? 1 : real.redPts < real.bluePts ? 0 : 0.5,
+            actualRedScore: real.redPts,
+            actualBlueScore: real.bluePts,
+        };
+    });
 }
 
 // Postgres' wire protocol caps a single query at 65535 bound parameters - upsert() (unlike
@@ -582,14 +612,16 @@ const EPA_CATEGORY_SHORT_NAMES: Record<string, string> = {
     dcPoints: "dc",
     egPoints: "eg",
 };
+
 function epaCategoriesFor(season: Season): { shortName: string; selector: ScoreSelector }[] {
-    return DESCRIPTORS[season]
+    let fromDescriptor: { shortName: string; selector: ScoreSelector }[] = DESCRIPTORS[season]
         .epaColumns()
         .filter((c) => c.dbName != "totalPoints")
         .map((c) => ({
             shortName: EPA_CATEGORY_SHORT_NAMES[c.dbName],
-            selector: (s) => c.make(s, Station.One),
+            selector: (s: Score) => c.make(s, Station.One),
         }));
+    return [...fromDescriptor, { shortName: "np", selector: (s: Score) => s.totalPointsNp }];
 }
 
 function toTeamEpaCategoryRow(
@@ -687,10 +719,12 @@ export async function computeAndSaveEpas(season: Season) {
         await new Promise((resolve) => setImmediate(resolve));
     }
     let categoryEngineStates: Record<string, EpaEngineState> = {};
+    let npResult: SeasonEpaResult | null = null;
     for (let { shortName, selector } of epaCategoriesFor(season)) {
         let categoryResult = computeSeasonEpas(frontendMatches, DEFAULT_EPA_PARAMS, selector);
         let categoryEngineState = seedEngineState(categoryResult);
         categoryEngineStates[shortName] = categoryEngineState;
+        if (shortName === "np") npResult = categoryResult;
 
         let categoryRows = Object.keys(categoryResult.teamEpas).map((teamNumber) =>
             toTeamEpaCategoryRow(season, +teamNumber, shortName, categoryEngineState)
@@ -737,6 +771,26 @@ export async function computeAndSaveEpas(season: Season) {
         playoffs.predictions,
         playoffs.matchTimeByKey
     );
+
+    if (npResult) {
+        let realScores = realScoreMap(matches);
+        await saveDailyStatsFullRebuild(
+            season,
+            PredictionLevel.Quals,
+            PredictionSource.EpaNp,
+            adjustToRealScore(npResult.predictions, realScores),
+            matchTimeByKey
+        );
+
+        let npPlayoffs = await computePlayoffPredictions(season, npResult, matchTimeByKey);
+        await saveDailyStatsFullRebuild(
+            season,
+            PredictionLevel.Playoff,
+            PredictionSource.EpaNp,
+            npPlayoffs.predictions,
+            npPlayoffs.matchTimeByKey
+        );
+    }
 
     // OPR and win/loss-record baselines, for comparison against EPA on the same matches. Only
     // refreshed by this full replay, not the 1-minute incremental path - a day's lag on these
@@ -876,6 +930,7 @@ export async function incrementallyUpdateEpas(season: Season) {
     // Per-category EPA all a bit jank
     let categoryTouchedTeams: Record<string, Set<number>> = {};
     let categoryHistorySnapshots: Record<string, TeamEpaSnapshot[]> = {};
+    let npPredictions: MatchPrediction[] = [];
     for (let { shortName, selector } of categories) {
         let categoryState = savedState.categories[shortName];
         let touched = new Set<number>();
@@ -892,6 +947,7 @@ export async function incrementallyUpdateEpas(season: Season) {
                 touched.add(h.teamNumber);
                 snapshots.push(h);
             }
+            if (shortName === "np") npPredictions.push(result.prediction);
         }
         categoryTouchedTeams[shortName] = touched;
         categoryHistorySnapshots[shortName] = snapshots;
@@ -957,6 +1013,17 @@ export async function incrementallyUpdateEpas(season: Season) {
         predictions,
         matchTimeByKey
     );
+
+    if (npPredictions.length > 0) {
+        let realScores = realScoreMap(newMatches);
+        await addDailyStats(
+            season,
+            PredictionLevel.Quals,
+            PredictionSource.EpaNp,
+            adjustToRealScore(npPredictions, realScores),
+            matchTimeByKey
+        );
+    }
 
     await DATA_SOURCE.getRepository(EpaLiveState).save(
         EpaLiveState.create({

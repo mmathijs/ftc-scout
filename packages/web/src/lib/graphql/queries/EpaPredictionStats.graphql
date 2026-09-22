@@ -23,6 +23,15 @@ query EpaPredictionStats(
     ) {
         ...PredictionStatFields
     }
+    epaNp: predictionStats(
+        season: $season
+        source: EpaNp
+        level: $level
+        window: $window
+        windowDays: $windowDays
+    ) {
+        ...PredictionStatFields
+    }
     opr: predictionStats(
         season: $season
         source: Opr

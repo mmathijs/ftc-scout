@@ -12,6 +12,7 @@ export type PredictionLevel = (typeof PredictionLevel)[keyof typeof PredictionLe
 // tuning, just their record so far.
 export const PredictionSource = {
     Epa: "Epa",
+    EpaNp: "EpaNp",
     Opr: "Opr",
     WinLoss: "WinLoss",
 } as const;

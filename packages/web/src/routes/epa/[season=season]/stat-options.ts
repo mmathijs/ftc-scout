@@ -7,6 +7,7 @@ import { INT_EC_DC } from "$lib/util/search-params/int";
 
 export const ALL_SOURCES: PredictionSourceFilter[] = [
     PredictionSourceFilter.Epa,
+    PredictionSourceFilter.EpaNp,
     PredictionSourceFilter.Opr,
     PredictionSourceFilter.WinLoss,
 ];
@@ -81,6 +82,7 @@ export function metricLabel(m: Metric): string {
 export function sourceLabel(source: PredictionSourceFilter): string {
     return {
         Epa: "EPA",
+        EpaNp: "EPA (No Penalty)",
         Opr: "OPR",
         WinLoss: "Win/loss record",
     }[source];
@@ -90,6 +92,7 @@ export function sourceLabel(source: PredictionSourceFilter): string {
 // other predictors are shown alongside it.
 const SOURCE_COLORS: Record<PredictionSourceFilter, string> = {
     Epa: "var(--inline-theme-color)",
+    EpaNp: "#2e9e6c",
     Opr: "#e0972e",
     WinLoss: "#8a5fd6",
 };

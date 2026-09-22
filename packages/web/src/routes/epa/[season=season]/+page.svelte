@@ -34,6 +34,7 @@
     $: accuracyData = data.epaPredictionStatsData;
     $: seriesPoints = {
         [PredictionSourceFilter.Epa]: $accuracyData?.data.epa ?? [],
+        [PredictionSourceFilter.EpaNp]: $accuracyData?.data.epaNp ?? [],
         [PredictionSourceFilter.Opr]: $accuracyData?.data.opr ?? [],
         [PredictionSourceFilter.WinLoss]: $accuracyData?.data.winLoss ?? [],
     };

@@ -184,6 +184,7 @@ const TeamEpaGroupGQL = new GraphQLObjectType({
         dc: { type: TeamEpaCategoryGQL },
         eg: { type: TeamEpaCategoryGQL },
         total: { type: TeamEpaGQL },
+        np: { type: TeamEpaCategoryGQL },
     },
 });
 
@@ -194,6 +195,7 @@ const TeamEpaGroupHistoryGQL = new GraphQLObjectType({
         dc: { type: list(nn(TeamEpaHistoryGQL)) },
         eg: { type: list(nn(TeamEpaHistoryGQL)) },
         total: { type: list(nn(TeamEpaHistoryGQL)) },
+        np: { type: list(nn(TeamEpaHistoryGQL)) },
     },
 });
 
@@ -404,13 +406,14 @@ export const TeamGQL: GraphQLObjectType = new GraphQLObjectType({
             args: { season: IntTy },
             resolve: async (team, { season }: { season: Season }) => {
                 if (ALL_SEASONS.indexOf(season) == -1) throw "invalid season";
-                let [auto, dc, eg, total] = await Promise.all([
+                let [auto, dc, eg, total, np] = await Promise.all([
                     getTeamEpaCategory(team.number, season, "auto"),
                     getTeamEpaCategory(team.number, season, "dc"),
                     getTeamEpaCategory(team.number, season, "eg"),
                     getTeamEpa(team.number, season),
+                    getTeamEpaCategory(team.number, season, "np"),
                 ]);
-                return { auto, dc, eg, total };
+                return { auto, dc, eg, total, np };
             },
         },
 
@@ -419,7 +422,7 @@ export const TeamGQL: GraphQLObjectType = new GraphQLObjectType({
             args: { season: IntTy },
             resolve: async (team, { season }: { season: Season }) => {
                 if (ALL_SEASONS.indexOf(season) == -1) throw "invalid season";
-                let [auto, dc, eg, total] = await Promise.all([
+                let [auto, dc, eg, total, np] = await Promise.all([
                     getTeamEpaCategoryHistory(team.number, season, "auto"),
                     getTeamEpaCategoryHistory(team.number, season, "dc"),
                     getTeamEpaCategoryHistory(team.number, season, "eg"),
@@ -429,8 +432,9 @@ export const TeamGQL: GraphQLObjectType = new GraphQLObjectType({
                         .andWhere("matches_played > 0")
                         .orderBy("matches_played", "ASC")
                         .getMany(),
+                    getTeamEpaCategoryHistory(team.number, season, "np"),
                 ]);
-                return { auto, dc, eg, total };
+                return { auto, dc, eg, total, np };
             },
         },
     }),

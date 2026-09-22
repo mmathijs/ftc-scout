@@ -85,7 +85,12 @@ const EpaStatWindowGQL = makeGQLEnum(EpaStatWindow, "EpaStatWindow");
 
 // Which team-strength model produced the prediction being graded. No "All" option here (unlike
 // level) - summing correct-counts across different models wouldn't mean anything.
-const PredictionSourceFilter = { Epa: "Epa", Opr: "Opr", WinLoss: "WinLoss" } as const;
+const PredictionSourceFilter = {
+    Epa: "Epa",
+    EpaNp: "EpaNp",
+    Opr: "Opr",
+    WinLoss: "WinLoss",
+} as const;
 type PredictionSourceFilter = (typeof PredictionSourceFilter)[keyof typeof PredictionSourceFilter];
 const PredictionSourceFilterGQL = makeGQLEnum(PredictionSourceFilter, "PredictionSourceFilter");
 

@@ -26,7 +26,10 @@ import { EventGQL } from "./Event";
 import { VideoGQL } from "./Video";
 import { MatchScore } from "../../db/entities/dyn/match-score";
 import { TeamMatchParticipation } from "../../db/entities/TeamMatchParticipation";
-import { teamEpaLoader, teamEpaHistoryLoader } from "../../db/loaders/team-epa-loader";
+import {
+    teamEpaCategoryLoader,
+    teamEpaCategoryHistoryLoader,
+} from "../../db/loaders/team-epa-category-loader";
 
 const EpaPredictionGQL = new GraphQLObjectType({
     name: "EpaPrediction",
@@ -81,7 +84,9 @@ export const MatchGQL: GraphQLObjectType = new GraphQLObjectType({
                 let allTeams = [...redTeams, ...blueTeams];
 
                 let liveRows = await Promise.all(
-                    allTeams.map((t) => teamEpaLoader.load(`${m.eventSeason}:${t.teamNumber}`))
+                    allTeams.map((t) =>
+                        teamEpaCategoryLoader.load(`${m.eventSeason}:${t.teamNumber}:np`)
+                    )
                 );
                 let fitSource = liveRows.find((r) => r != null);
                 if (!fitSource) return null;
@@ -96,7 +101,7 @@ export const MatchGQL: GraphQLObjectType = new GraphQLObjectType({
                 if (m.hasBeenPlayed) {
                     let histories = await Promise.all(
                         allTeams.map((t) =>
-                            teamEpaHistoryLoader.load(`${m.eventSeason}:${t.teamNumber}`)
+                            teamEpaCategoryHistoryLoader.load(`${m.eventSeason}:${t.teamNumber}:np`)
                         )
                     );
                     let matchTime = m.actualStartTime ?? m.scheduledStartTime ?? m.postResultTime;

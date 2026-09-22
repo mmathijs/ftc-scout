@@ -8,18 +8,20 @@
     export let epaGroup: NonNullable<TeamQuery["teamByNumber"]>["epaGroup"] = null;
     export let epaGroupHistory: NonNullable<TeamQuery["teamByNumber"]>["epaGroupHistory"] = null;
 
-    type LineKey = "total" | "auto" | "dc";
+    type LineKey = "total" | "auto" | "dc" | "np";
     const LINE_LABELS: Record<LineKey, string> = {
         total: "Total",
         auto: "Auto",
         dc: "Teleop",
+        np: "No Penalties",
     };
     const LINE_COLORS: Record<LineKey, string> = {
         total: "var(--red-stat-color)",
         auto: "var(--green-stat-color)",
         dc: "var(--light-blue-stat-color)",
+        np: "var(--purple-stat-color)",
     };
-    const LINE_ORDER: LineKey[] = ["total", "auto", "dc"];
+    const LINE_ORDER: LineKey[] = ["total", "np", "auto", "dc"];
 
     // Epa history plot
     type CategoryStat = { epa: number; matchesPlayed: number; rank: number };
@@ -30,12 +32,14 @@
         auto: (epaGroup?.auto ?? null) as CategoryStat | null,
         dc: (epaGroup?.dc ?? null) as CategoryStat | null,
         eg: (epaGroup?.eg ?? null) as CategoryStat | null,
+        np: (epaGroup?.np ?? null) as CategoryStat | null,
     };
     $: lineHistories = {
         total: history,
         auto: epaGroupHistory?.auto ?? null,
         dc: epaGroupHistory?.dc ?? null,
         eg: epaGroupHistory?.eg ?? null,
+        np: epaGroupHistory?.np ?? null,
     };
     $: activeLines = LINE_ORDER.filter((k) => lineStats[k] != null);
 
