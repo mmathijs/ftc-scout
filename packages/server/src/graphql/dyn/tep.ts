@@ -98,6 +98,7 @@ function make(descriptor: Descriptor, remote: boolean): GraphQLObjectType {
                 ? totalEpaField()
                 : epaCategoryField(EPA_CATEGORY_SHORT_NAMES[c.dbName]);
     }
+    epaGroupFields["np"] = epaCategoryField("np");
 
     let epaGroupInner = new GraphQLObjectType({
         name: `TeamEventStats${descriptor.season}${nameSuffix}EpaGroup`,
