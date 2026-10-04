@@ -135,7 +135,7 @@ export const MatchGQL: GraphQLObjectType = new GraphQLObjectType({
                 let [r1, r2, b1, b2] = epaInputs;
                 if (!r1 || !r2 || !b1 || !b2) return null;
 
-                return predictMatch([r1, r2], [b1, b2], fit);
+                return predictMatch([r1, r2], [b1, b2], fit, fitSource.seasonSd);
             },
         },
 

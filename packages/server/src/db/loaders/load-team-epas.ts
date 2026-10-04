@@ -239,8 +239,8 @@ async function addDailyStats(
 // keeps that), which is a minor look-ahead for early-season playoffs but immaterial for stats
 // purposes - this never touches what's served live (Match.ts's resolver uses the true live fit).
 // No fit yet (an early-season event's own playoffs, before the season-wide fit exists) isn't
-// treated as "unscoreable" - predictMatch degrades to a neutral 50/50 guess, same as every other
-// data-starved prediction here, rather than silently skipping it.
+// treated as "unscoreable" - predictMatch falls back to the flat season score SD as sigma, same
+// as the quals replay does, rather than silently skipping it.
 export async function computePlayoffPredictions(
     season: Season,
     qualsResult: SeasonEpaResult,
@@ -328,7 +328,8 @@ export async function computePlayoffPredictions(
         let pred = predictMatch(
             [{ epa: r1 }, { epa: r2 }],
             [{ epa: b1 }, { epa: b2 }],
-            qualsResult.fit
+            qualsResult.fit,
+            stdDev(qualsResult.totalStat)
         );
 
         let redPts = redScore.totalPoints;

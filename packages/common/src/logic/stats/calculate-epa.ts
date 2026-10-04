@@ -35,6 +35,10 @@ export interface EpaParams {
     /** Weights fot the margin and the points-added signals for the EPA formulas */
     marginWeight: number;
     pointsWeight: number;
+
+    /** Until the season has this many alliance scores, every team's EPA follows the season mean
+     *  as it moves. Otherwise teams from the first events start at ~0 and stay underrated. */
+    bootstrapScores: number;
 }
 
 // Tuned on previous years matches to be the most accurate
@@ -49,6 +53,7 @@ export const DEFAULT_EPA_PARAMS: EpaParams = {
     refitEveryDays: 1,
     marginWeight: 0.25,
     pointsWeight: 1.5,
+    bootstrapScores: 150,
 };
 
 export interface TeamEpaState {
@@ -190,15 +195,17 @@ export interface MatchScorePrediction {
 }
 
 // Use SD and EPA's of both teams (basic x1 + x2, sqrt(s1^2 + s2^2))
+// Before the fit exists, fallbackSigma (the season's score SD) is used per team, same as stepMatch
 export function predictMatch(
     red: [EpaPredictionInput, EpaPredictionInput],
     blue: [EpaPredictionInput, EpaPredictionInput],
-    fit: TaylorsLawFit | null
+    fit: TaylorsLawFit | null,
+    fallbackSigma = 0
 ): MatchScorePrediction {
     let redScore = red[0].epa + red[1].epa;
     let blueScore = blue[0].epa + blue[1].epa;
 
-    let teamSigma = (t: EpaPredictionInput) => (fit ? sigmaFor(fit, t.epa) : 0);
+    let teamSigma = (t: EpaPredictionInput) => (fit ? sigmaFor(fit, t.epa) : fallbackSigma);
     let redSigma = Math.sqrt(teamSigma(red[0]) ** 2 + teamSigma(red[1]) ** 2);
     let blueSigma = Math.sqrt(teamSigma(blue[0]) ** 2 + teamSigma(blue[1]) ** 2);
     let combinedSigma = Math.sqrt(redSigma * redSigma + blueSigma * blueSigma);
@@ -338,6 +345,14 @@ function stepMatch<M extends Match>(
 
     for (let team of [r1, r2, b1, b2]) team.matchesPlayed += 1;
 
+    let prevMean = core.totalStat.mean;
+    let bootstrapping = core.totalStat.count < params.bootstrapScores;
+    core.totalStat = addObservation(addObservation(core.totalStat, redVal), blueVal);
+    if (bootstrapping) {
+        let shift = (core.totalStat.mean - prevMean) / 2;
+        for (let team of Object.values(core.teamEpas)) team.epa += shift;
+    }
+
     history.push(
         {
             teamNumber: redTeams[0].teamNumber,
@@ -368,8 +383,6 @@ function stepMatch<M extends Match>(
             matchesPlayed: b2.matchesPlayed,
         }
     );
-
-    core.totalStat = addObservation(addObservation(core.totalStat, redVal), blueVal);
 
     return { history, prediction };
 }

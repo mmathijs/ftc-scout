@@ -53,7 +53,7 @@ function epaCategoryField(category: string): GraphQLFieldConfig<any, any> {
 
 function totalEpaField(): GraphQLFieldConfig<any, any> {
     return {
-        ...FloatTy,
+        ...nullTy(FloatTy),
         resolve: async (tep: TepLike) => {
             if (!("eventCode" in tep)) {
                 return (await teamEpaLoader.load(`${tep.season}:${tep.teamNumber}`))?.epa ?? null;
