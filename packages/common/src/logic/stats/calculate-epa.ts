@@ -146,6 +146,14 @@ function matchTimeMs(m: unknown): number | null {
     return isNaN(ms) ? null : ms;
 }
 
+// A 0-0 match is basically never a real result (unplayed, test match, or bad data), so EPA skips
+// it. Checked on total points, so every category skips the same matches.
+export function hasNonZeroScores(scores: Match["scores"]): scores is { red: Score; blue: Score } {
+    return (
+        hasAllianceScores(scores) && (scores.red.totalPoints != 0 || scores.blue.totalPoints != 0)
+    );
+}
+
 // Find the fit using statcube's implementation
 function collectFitSamples<M extends Match>(
     matches: M[],
@@ -157,7 +165,7 @@ function collectFitSamples<M extends Match>(
     for (let m of matches) {
         let t = matchTimeMs(m);
         if (t == null || t < windowStart || t >= windowEnd) continue;
-        if (!hasAllianceScores(m.scores)) continue;
+        if (!hasNonZeroScores(m.scores)) continue;
         for (let alliance of [Alliance.Red, Alliance.Blue]) {
             let allianceTeams = m.teams.filter((tm) => tm.alliance === alliance && !tm.surrogate);
             if (allianceTeams.length !== 2) continue;
@@ -276,7 +284,7 @@ function stepMatch<M extends Match>(
     eligibleForScoring: boolean,
     selector: ScoreSelector
 ): { history: TeamEpaSnapshot[]; prediction: MatchPrediction } | null {
-    if (!hasAllianceScores(m.scores)) return null;
+    if (!hasNonZeroScores(m.scores)) return null;
 
     let redTeams = m.teams.filter((t) => t.alliance === Alliance.Red && !t.surrogate);
     let blueTeams = m.teams.filter((t) => t.alliance === Alliance.Blue && !t.surrogate);
@@ -392,7 +400,7 @@ export function computeSeasonEpas<M extends Match>(
     params: EpaParams = DEFAULT_EPA_PARAMS,
     selector: ScoreSelector = DEFAULT_SELECTOR
 ): SeasonEpaResult {
-    let matches = filterQualsMatches(sortedQualMatches).filter((m) => hasAllianceScores(m.scores));
+    let matches = filterQualsMatches(sortedQualMatches).filter((m) => hasNonZeroScores(m.scores));
 
     let core: CoreEpaState = { teamEpas: {}, totalStat: emptyRunningStat() };
     let predictions: MatchPrediction[] = [];
@@ -522,7 +530,7 @@ export function applyMatchIncremental<M extends Match>(
     params: EpaParams = DEFAULT_EPA_PARAMS,
     selector: ScoreSelector = DEFAULT_SELECTOR
 ): { history: TeamEpaSnapshot[]; prediction: MatchPrediction } | null {
-    if (!hasAllianceScores(m.scores)) return null;
+    if (!hasNonZeroScores(m.scores)) return null;
 
     let matchTime = matchTimeMs(m) ?? Infinity;
     if (state.firstTime == null) state.firstTime = matchTime === Infinity ? 0 : matchTime;

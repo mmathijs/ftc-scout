@@ -311,6 +311,8 @@ export async function computePlayoffPredictions(
         let redScore = match.scores.find((s) => s.alliance === Alliance.Red);
         let blueScore = match.scores.find((s) => s.alliance === Alliance.Blue);
         if (!redScore || !blueScore) continue;
+        // Same as the quals replay, 0-0 matches aren't real results
+        if (redScore.totalPoints == 0 && blueScore.totalPoints == 0) continue;
 
         let redTeams = match.teams.filter((t) => t.alliance === Alliance.Red && !t.surrogate);
         let blueTeams = match.teams.filter((t) => t.alliance === Alliance.Blue && !t.surrogate);
