@@ -27,6 +27,7 @@ import {
     refreshQuickStatsMaterializedViews,
 } from "./db/quickstats-materialized-view";
 import { responseCachePlugin } from "./graphql/plugins/response-cache-plugin";
+import { errorHandler } from "./rest/error-handler";
 
 // Logs GraphQL request timing server-side for queries/mutations/subscriptions.
 const graphqlTimingPlugin = {
@@ -145,16 +146,27 @@ async function main() {
 
     setupBannerRoutes(app);
 
+    app.use(errorHandler);
+
     httpServer.listen(SERVER_PORT, () => {
         console.info(`Server started and listening on port ${SERVER_PORT}.`);
     });
 
     if (SYNC_API) {
-        fetchPriorSeasons().then(async () => {
-            await refreshQuickStatsMaterializedViews(true);
-            await watchApi();
-        });
+        fetchPriorSeasons()
+            .then(async () => {
+                await refreshQuickStatsMaterializedViews(true);
+                await watchApi();
+            })
+            .catch((e) => {
+                console.error("!!! ERROR DURING INITIAL DATA SYNC - watchApi is not started !!!");
+                console.error(e);
+            });
     }
 }
 
-main();
+main().catch((e) => {
+    console.error("!!! FATAL ERROR DURING STARTUP !!!");
+    console.error(e);
+    process.exit(1);
+});

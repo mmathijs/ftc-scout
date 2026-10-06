@@ -26,6 +26,7 @@ import { LeagueTeam } from "../db/entities/LeagueTeam";
 import { LeagueRanking, firstSeasonLeagueRankings } from "../db/entities/dyn/league-ranking";
 import { addTypename } from "../graphql/dyn/tep";
 import { AdvancementScore } from "../db/entities/AdvancementScore";
+import { asyncHandler } from "./async-handler";
 
 const pre = "/rest/v1/";
 
@@ -59,26 +60,26 @@ function isDate(date: string): boolean {
 }
 
 export function setupRest(app: Express) {
-    app.get(pre + "teams/:number(\\d+)", teamByNumber);
-    app.get(pre + "teams/:number(\\d+)/events/:season(\\d+)", teamEvents);
-    app.get(pre + "teams/:number(\\d+)/awards", teamAwards);
-    app.get(pre + "teams/:number(\\d+)/matches", teamMatches);
-    app.get(pre + "teams/:number(\\d+)/quick-stats", teamQuickStats);
-    app.get(pre + "teams/search", teamSearch);
+    app.get(pre + "teams/:number(\\d+)", asyncHandler(teamByNumber));
+    app.get(pre + "teams/:number(\\d+)/events/:season(\\d+)", asyncHandler(teamEvents));
+    app.get(pre + "teams/:number(\\d+)/awards", asyncHandler(teamAwards));
+    app.get(pre + "teams/:number(\\d+)/matches", asyncHandler(teamMatches));
+    app.get(pre + "teams/:number(\\d+)/quick-stats", asyncHandler(teamQuickStats));
+    app.get(pre + "teams/search", asyncHandler(teamSearch));
 
-    app.get(pre + "events/:season(\\d+)/:code", eventByCode);
-    app.get(pre + "events/:season(\\d+)/:code/matches", eventMatches);
-    app.get(pre + "events/:season(\\d+)/:code/awards", eventAwards);
-    app.get(pre + "events/:season(\\d+)/:code/teams", eventTeams);
-    app.get(pre + "events/:season(\\d+)/:code/advancement", eventAdvancement);
-    app.get(pre + "events/:season(\\d+)/:code/preview", eventPreview);
-    app.get(pre + "events/search/:season(\\d+)", eventSearch);
+    app.get(pre + "events/:season(\\d+)/:code", asyncHandler(eventByCode));
+    app.get(pre + "events/:season(\\d+)/:code/matches", asyncHandler(eventMatches));
+    app.get(pre + "events/:season(\\d+)/:code/awards", asyncHandler(eventAwards));
+    app.get(pre + "events/:season(\\d+)/:code/teams", asyncHandler(eventTeams));
+    app.get(pre + "events/:season(\\d+)/:code/advancement", asyncHandler(eventAdvancement));
+    app.get(pre + "events/:season(\\d+)/:code/preview", asyncHandler(eventPreview));
+    app.get(pre + "events/search/:season(\\d+)", asyncHandler(eventSearch));
 
-    app.get(pre + "leagues/:season(\\d+)", leagueSearch);
-    app.get(pre + "leagues/:season(\\d+)/:regionCode/:code", leagueByCode);
-    app.get(pre + "leagues/:season(\\d+)/:regionCode/:code/teams", leagueTeams);
+    app.get(pre + "leagues/:season(\\d+)", asyncHandler(leagueSearch));
+    app.get(pre + "leagues/:season(\\d+)/:regionCode/:code", asyncHandler(leagueByCode));
+    app.get(pre + "leagues/:season(\\d+)/:regionCode/:code/teams", asyncHandler(leagueTeams));
 
-    app.get(pre + "teams/:number(\\d+)/leagues", teamLeagues);
+    app.get(pre + "teams/:number(\\d+)/leagues", asyncHandler(teamLeagues));
 }
 
 async function teamByNumber(req: Request<{ number: string }>, res: Response) {

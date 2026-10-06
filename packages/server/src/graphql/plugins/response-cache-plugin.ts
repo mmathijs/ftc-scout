@@ -92,7 +92,9 @@ export function responseCachePlugin(cache: KeyValueCache): ApolloServerPlugin {
                         headers.set("cache-control", `public, max-age=${ttl}`);
                         headers.set("x-cache", "HIT");
 
-                        QueryAnalytics.save({ queryName: operationName!, cached: true });
+                        QueryAnalytics.save({ queryName: operationName!, cached: true }).catch(
+                            (e) => console.error("Failed to save QueryAnalytics:", e)
+                        );
 
                         return {
                             body: {
@@ -113,7 +115,9 @@ export function responseCachePlugin(cache: KeyValueCache): ApolloServerPlugin {
                     }
 
                     if (operationName && operationName != "IntrospectionQuery") {
-                        QueryAnalytics.save({ queryName: operationName, cached: false });
+                        QueryAnalytics.save({ queryName: operationName, cached: false }).catch(
+                            (e) => console.error("Failed to save QueryAnalytics:", e)
+                        );
                     }
 
                     if (!shouldCache || !cacheKey) {
