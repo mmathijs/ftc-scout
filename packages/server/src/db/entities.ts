@@ -8,6 +8,7 @@ import { MatchScoreSchemas } from "./entities/dyn/match-score";
 import { Match } from "./entities/Match";
 import { TeamMatchParticipation } from "./entities/TeamMatchParticipation";
 import { Award } from "./entities/Award";
+import { TeamAvatar } from "./entities/TeamAvatar";
 import { TeamEventParticipationSchemas } from "./entities/dyn/team-event-participation";
 import { ApiReq } from "./entities/ApiReq";
 import { Analytics } from "./entities/Analytics";
@@ -20,6 +21,7 @@ export const ENTITIES: MixedList<string | Function | EntitySchema<any>> = [
     Team,
     Event,
     Award,
+    TeamAvatar,
     Match,
     TeamMatchParticipation,
     ...Object.values(MatchScoreSchemas),

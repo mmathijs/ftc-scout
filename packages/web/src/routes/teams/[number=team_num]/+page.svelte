@@ -57,6 +57,12 @@
         killHash: true,
     });
 
+    // Find avatar this season, otherwise use oldest available avatar
+    $: seasonAvatar =
+        (team?.avatarHistory ?? []).find((a) => a.season <= $season) ??
+        team?.avatarHistory.at(-1) ??
+        null;
+
     setContext(SHOW_REMOTE_FOCUS_CTX, false);
 </script>
 
@@ -76,7 +82,12 @@
         </ErrorPage>
 
         <Card>
-            <h1>{team.number} - {team.name}</h1>
+            <div class="title-row">
+                {#if seasonAvatar}
+                    <img src={seasonAvatar.url} alt="" class="avatar" />
+                {/if}
+                <h1>{team.number} - {team.name}</h1>
+            </div>
 
             <InfoIconRow icon={faSchool}>{team.schoolName}</InfoIconRow>
 
@@ -181,5 +192,34 @@
         align-items: center;
         gap: var(--md-gap);
         text-align: center;
+    }
+
+    .avatar {
+        object-fit: contain;
+        border-radius: 8px;
+        flex-shrink: 0;
+    }
+
+    .title-row {
+        display: flex;
+        align-items: center;
+        gap: var(--lg-gap);
+        margin-bottom: var(--lg-gap);
+    }
+
+    .title-row .avatar {
+        width: 48px;
+        height: 48px;
+    }
+
+    .title-row h1 {
+        margin: 0;
+    }
+
+    @media (max-width: 800px) {
+        .title-row .avatar {
+            width: 40px;
+            height: 40px;
+        }
     }
 </style>

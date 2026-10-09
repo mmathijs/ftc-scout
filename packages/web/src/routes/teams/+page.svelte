@@ -88,6 +88,11 @@
                             <span class="number"> {@html highlightNum(team.number)} </span>
                             <span class="name">{@html highlight(team.name, highlights)} </span>
                             <em class="location"> <Location {...team.location} link={false} /> </em>
+                            {#if team.avatar}
+                                <img src={team.avatar} alt="" class="avatar" />
+                            {:else}
+                                <span class="avatar-placeholder" />
+                            {/if}
                         </a>
                     </li>
                 {:else}
@@ -155,7 +160,7 @@
         border-radius: 8px;
 
         display: grid;
-        grid-template-columns: 6ch 1fr;
+        grid-template-columns: 6ch 1fr auto;
         grid-template-rows: auto auto;
         gap: var(--sm-gap) var(--lg-gap);
 
@@ -167,8 +172,24 @@
         background: var(--hover-color);
     }
 
+    .avatar,
+    .avatar-placeholder {
+        grid-column: 3;
+        grid-row: 1 / span 2;
+        align-self: center;
+        width: 2.2em;
+        height: 2.2em;
+        margin-right: 8px;
+    }
+
+    .avatar {
+        object-fit: contain;
+        border-radius: 20%;
+    }
+
     .number {
-        grid-row: span 2;
+        grid-column: 1;
+        grid-row: 1 / span 2;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -176,10 +197,14 @@
     }
 
     .name {
+        grid-column: 2;
+        grid-row: 1;
         font-size: var(--md-font-size);
     }
 
     .location {
+        grid-column: 2;
+        grid-row: 2;
         font-size: var(--md-font-size);
         color: var(--secondary-text-color);
     }
@@ -189,7 +214,7 @@
         flex-direction: column;
         align-items: center;
         gap: var(--md-gap);
-        grid-column: span 2;
+        grid-column: span 3;
 
         width: 100%;
     }

@@ -25,4 +25,5 @@ fragment TeamsSearchTeam on Team {
         state
         country
     }
+    avatar
 }

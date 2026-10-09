@@ -13,6 +13,12 @@ query Team($number: Int!, $season: Int!) {
         sponsors
         rookieYear
         activeSeasons
+        avatarHistory {
+            season
+            uuid
+            url
+            createdAt
+        }
         quickStats(season: $season) {
             tot {
                 value

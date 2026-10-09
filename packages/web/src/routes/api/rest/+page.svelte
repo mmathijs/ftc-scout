@@ -44,7 +44,11 @@
             <section>
                 <code class="route">/teams/<span class="var">:number</span></code>
                 <p>Get a team by their number.</p>
-                <p>Returns all scalar fields of the <code>Team</code> GraphQL type.</p>
+                <p>
+                    Returns all scalar fields of the <code>Team</code> GraphQL type, plus an
+                    <code>avatar</code> field with the team's current avatar, or <code>null</code> if
+                    they don't have one.
+                </p>
                 <p><code class="resp-code">404</code>s if the team does not exist.</p>
             </section>
 
@@ -108,6 +112,21 @@
                 <p>
                     <code class="resp-code">404</code>s if the team does not exist or has no events
                     in the specified season.
+                </p>
+            </section>
+
+            <section>
+                <code class="route">/teams/<span class="var">:number</span>/avatars</code>
+                <p>
+                    Get a team's full avatar history. A team can change their avatar, so this
+                    returns all avatars a team has used over time, from new to old. Newest is the
+                    same as the <code>avatar</code>
+                    field on the <code>/teams/:number</code> route.
+                </p>
+                <p>Returns all fields of the <code>TeamAvatar</code> GraphQL type.</p>
+                <p>
+                    Does <b>not</b> <code class="resp-code">404</code> if the team does not exist;
+                    instead returns <code>[]</code>.
                 </p>
             </section>
 
