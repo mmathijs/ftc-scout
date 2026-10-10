@@ -185,7 +185,7 @@
     .avatar {
         object-fit: contain;
         image-rendering: pixelated;
-        border-radius: 20%;
+        border-radius: 10%;
     }
 
     .number {
