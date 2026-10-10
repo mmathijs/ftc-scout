@@ -97,13 +97,14 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 1.6em;
+        width: 20px;
     }
 
     .avatar {
-        width: 1.6em;
-        height: 1.6em;
+        width: 20px;
+        height: 20px;
         object-fit: contain;
+        image-rendering: pixelated;
         border-radius: 4px;
     }
 </style>

@@ -177,13 +177,14 @@
         grid-column: 3;
         grid-row: 1 / span 2;
         align-self: center;
-        width: 2.2em;
-        height: 2.2em;
+        width: 40px;
+        height: 40px;
         margin-right: 8px;
     }
 
     .avatar {
         object-fit: contain;
+        image-rendering: pixelated;
         border-radius: 20%;
     }
 

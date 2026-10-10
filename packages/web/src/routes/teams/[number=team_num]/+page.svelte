@@ -196,6 +196,7 @@
 
     .avatar {
         object-fit: contain;
+        image-rendering: pixelated;
         border-radius: 8px;
         flex-shrink: 0;
     }
@@ -208,18 +209,11 @@
     }
 
     .title-row .avatar {
-        width: 48px;
-        height: 48px;
+        width: 40px;
+        height: 40px;
     }
 
     .title-row h1 {
         margin: 0;
-    }
-
-    @media (max-width: 800px) {
-        .title-row .avatar {
-            width: 40px;
-            height: 40px;
-        }
     }
 </style>
