@@ -104,7 +104,6 @@
         width: 20px;
         height: 20px;
         object-fit: contain;
-        image-rendering: pixelated;
-        border-radius: 4px;
+        border-radius: 2px;
     }
 </style>
