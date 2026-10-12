@@ -18,6 +18,7 @@
 
     $: number = team.team.number;
     $: name = team.team.name;
+    $: avatar = team.team.avatar ?? null;
 
     $: surrogate = team.surrogate;
     $: dq = team.dq;
@@ -59,7 +60,12 @@
             }
         }}
     >
-        <span class:dq={dq || noShow}>{number}{surrogate ? "*" : ""}</span>
+        <span class="number">
+            {#if avatar}
+                <img src={avatar} alt="" class="avatar" width="20" height="20" loading="lazy" />
+            {/if}
+            <span class:dq={dq || noShow}>{number}{surrogate ? "*" : ""}</span>
+        </span>
         <em class="name">{name}</em>
     </a>
 </td>
@@ -92,6 +98,20 @@
         text-decoration: none;
 
         height: 100%;
+    }
+
+    .number {
+        display: flex;
+        align-items: center;
+        gap: var(--sm-gap);
+    }
+
+    .avatar {
+        width: 20px;
+        height: 20px;
+        object-fit: contain;
+        border-radius: 2px;
+        flex-shrink: 0;
     }
 
     :global(.hearts) + td .inner {
@@ -140,6 +160,13 @@
     }
     .dq {
         text-decoration: line-through;
+    }
+
+    /* Not enough space on phone. */
+    @media (max-width: 600px) {
+        .avatar {
+            display: none;
+        }
     }
 
     @media (max-width: 1000px) {
