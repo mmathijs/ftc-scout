@@ -74,6 +74,7 @@
     td {
         grid-column: span var(--span);
         display: block;
+        container-type: inline-size;
 
         height: 100%;
 
@@ -164,6 +165,12 @@
 
     /* Not enough space on phone. */
     @media (max-width: 600px) {
+        .avatar {
+            display: none;
+        }
+    }
+
+    @container (max-width: 84px) {
         .avatar {
             display: none;
         }
