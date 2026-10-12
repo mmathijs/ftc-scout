@@ -10,6 +10,7 @@
     import MatchTeam from "./MatchTeam.svelte";
     import PlaceholderMatchTeam from "./PlaceholderMatchTeam.svelte";
     import { getContext } from "svelte";
+    import { readable, type Readable } from "svelte/store";
     import Fa from "svelte-fa";
     import { faCirclePlay } from "@fortawesome/free-regular-svg-icons";
     import {
@@ -44,8 +45,9 @@
     $: winner = computeWinner(match.scores);
 
     let showVideo: ShowMatchVideoFn = getContext(SHOW_MATCH_VIDEO);
-    const hasEventVideosFn = getContext(SHOW_EVENT_HAS_VIDEOS) as () => boolean | undefined;
-    $: eventHasVideos = !!(hasEventVideosFn ? hasEventVideosFn() : false);
+    const hasVideos =
+        getContext<Readable<boolean> | undefined>(SHOW_EVENT_HAS_VIDEOS) ?? readable(false);
+    $: eventHasVideos = $hasVideos;
     $: matchHasVideo = ((match as any).videos ?? []).length > 0;
 
     function hasAlreadyLost(series: number, allianceCount: number, alliance: Alliance): boolean {

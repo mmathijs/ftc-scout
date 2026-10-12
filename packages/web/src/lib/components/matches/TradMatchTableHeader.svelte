@@ -1,11 +1,13 @@
 <script lang="ts">
     import { getContext } from "svelte";
+    import { readable, type Readable } from "svelte/store";
     import { SHOW_EVENT_HAS_VIDEOS } from "./MatchTable.svelte";
     import { faCirclePlay } from "@fortawesome/free-regular-svg-icons";
     import Fa from "svelte-fa";
 
-    const hasEventVideosFn = getContext(SHOW_EVENT_HAS_VIDEOS) as () => boolean | undefined;
-    $: eventHasVideos = !!(hasEventVideosFn ? hasEventVideosFn() : false);
+    const hasVideos =
+        getContext<Readable<boolean> | undefined>(SHOW_EVENT_HAS_VIDEOS) ?? readable(false);
+    $: eventHasVideos = $hasVideos;
 </script>
 
 <thead>

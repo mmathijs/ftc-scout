@@ -1,11 +1,13 @@
 <script lang="ts">
     import { getContext } from "svelte";
+    import { readable, type Readable } from "svelte/store";
     import { SHOW_EVENT_HAS_VIDEOS } from "./MatchTable.svelte";
 
     export let name: string;
 
-    const hasEventVideosFn = getContext(SHOW_EVENT_HAS_VIDEOS) as () => boolean | undefined;
-    $: eventHasVideos = !!(hasEventVideosFn ? hasEventVideosFn() : false);
+    const hasVideos =
+        getContext<Readable<boolean> | undefined>(SHOW_EVENT_HAS_VIDEOS) ?? readable(false);
+    $: eventHasVideos = $hasVideos;
 </script>
 
 <tr class:eventHasVideos>
