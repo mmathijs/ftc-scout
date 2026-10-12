@@ -63,6 +63,7 @@
     import ScoreModal from "./score-modal/ScoreModal.svelte";
     import VideoModal from "./VideoModal.svelte";
     import { setContext } from "svelte";
+    import { writable } from "svelte/store";
     import { queryParam } from "../../util/search-params/search-params";
     import { faHeart, faHeartBroken } from "@fortawesome/free-solid-svg-icons";
     import { faHeart as faHeartOutline } from "@fortawesome/free-regular-svg-icons";
@@ -161,7 +162,9 @@
 
     setContext(SHOW_MATCH_SCORE, show);
     setContext(SHOW_MATCH_VIDEO, showVideo);
-    setContext(SHOW_EVENT_HAS_VIDEOS, () => hasAnyVideos);
+    const eventHasVideos = writable(false);
+    $: eventHasVideos.set(hasAnyVideos);
+    setContext(SHOW_EVENT_HAS_VIDEOS, eventHasVideos);
 
     let modalMatchId = queryParam<[string, number] | null>("scores", {
         encode: (m) => (m ? `${m[0]}-${m[1]}` : null),
