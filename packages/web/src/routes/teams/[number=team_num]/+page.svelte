@@ -197,7 +197,7 @@
     .avatar {
         object-fit: contain;
         image-rendering: pixelated;
-        border-radius: 8px;
+        border-radius: 4px;
         flex-shrink: 0;
     }
 
