@@ -37,6 +37,7 @@ fragment FullMatch on Match {
         team {
             number
             name
+            avatar
         }
         surrogate
         noShow

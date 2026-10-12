@@ -1,4 +1,4 @@
-import { CURRENT_SEASON, PAST_SEASONS } from "@ftc-scout/common";
+import { ALL_SEASONS, CURRENT_SEASON, PAST_SEASONS } from "@ftc-scout/common";
 import { DataHasBeenLoaded } from "../db/entities/DataHasBeenLoaded";
 import { loadAllTeams } from "../db/loaders/load-all-teams";
 import { loadAllEvents } from "../db/loaders/load-all-events";
@@ -8,6 +8,7 @@ import { loadFutureEvents } from "../db/loaders/load-future-events";
 import { loadAllLeagues } from "../db/loaders/load-all-leagues";
 import { loadAdvancementSlots } from "../db/loaders/load-advancement-slots";
 import { computeAndSaveEpas, incrementallyUpdateEpas } from "../db/loaders/load-team-epas";
+import { loadAllAvatars } from "../db/loaders/load-all-avatars";
 
 export const LoadType = {
     Full: "Full",
@@ -54,6 +55,11 @@ export async function fetchPriorSeasons() {
         } else {
             console.info(`Leagues already loaded.`);
         }
+    }
+
+    // So cheap we dont need a flag imo
+    for (let season of ALL_SEASONS) {
+        await loadAllAvatars(season);
     }
 }
 
@@ -106,6 +112,8 @@ export async function watchApi() {
             async () => await loadAdvancementSlots(CURRENT_SEASON, LoadType.Future),
             MINS_PER_HOUR * 6
         );
+        await runJob(async () => await loadAllAvatars(CURRENT_SEASON), MINS_PER_HOUR * 12);
+
         cycleCount += 1;
         setTimeout(run, MS_PER_MIN);
     };

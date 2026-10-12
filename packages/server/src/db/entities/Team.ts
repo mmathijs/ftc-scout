@@ -46,6 +46,9 @@ export class Team extends BaseEntity {
     @Column({ type: "varchar", nullable: true })
     regionCode?: string | null;
 
+    @Column({ type: "varchar", nullable: true })
+    avatarUrl?: string | null;
+
     @CreateDateColumn({ type: "timestamptz" })
     createdAt!: Date;
 

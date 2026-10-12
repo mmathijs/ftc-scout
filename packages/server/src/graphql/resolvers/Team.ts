@@ -37,6 +37,8 @@ import {
     teamEpaCategoryRankLoader,
     teamEpaCategoryHistoryLoader,
 } from "../../db/loaders/team-epa-category-loader";
+import { TeamAvatar } from "../../db/entities/TeamAvatar";
+import { TeamAvatarGQL, avatarHistoryLoader } from "./TeamAvatar";
 
 const QuickStatGQL = new GraphQLObjectType({
     name: "QuickStat",
@@ -310,6 +312,18 @@ export const TeamGQL: GraphQLObjectType = new GraphQLObjectType({
         website: nullTy(StrTy),
         createdAt: DateTimeTy,
         updatedAt: DateTimeTy,
+        avatar: {
+            type: nullTy(StrTy).type,
+            resolve: (t: Team) => t.avatarUrl ?? null,
+        },
+        avatarHistory: {
+            type: list(nn(TeamAvatarGQL)),
+            resolve: dataLoaderResolverList<Team, TeamAvatar, number>(
+                (t) => t.number,
+                (keys) => avatarHistoryLoader(keys),
+                (k, r) => k == r.teamNumber
+            ),
+        },
         awards: {
             type: list(nn(AwardGQL)),
             args: { season: nullTy(IntTy) },

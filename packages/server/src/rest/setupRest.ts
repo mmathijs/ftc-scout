@@ -13,6 +13,7 @@ import {
     DESCRIPTORS,
 } from "@ftc-scout/common";
 import { Award } from "../db/entities/Award";
+import { avatarHistoryLoader } from "../graphql/resolvers/TeamAvatar";
 import { TeamMatchParticipation } from "../db/entities/TeamMatchParticipation";
 import { Event } from "../db/entities/Event";
 import { DateTime } from "luxon";
@@ -65,6 +66,7 @@ export function setupRest(app: Express) {
     app.get(pre + "teams/:number(\\d+)/awards", asyncHandler(teamAwards));
     app.get(pre + "teams/:number(\\d+)/matches", asyncHandler(teamMatches));
     app.get(pre + "teams/:number(\\d+)/quick-stats", asyncHandler(teamQuickStats));
+    app.get(pre + "teams/:number(\\d+)/avatars", asyncHandler(teamAvatars));
     app.get(pre + "teams/search", asyncHandler(teamSearch));
 
     app.get(pre + "events/:season(\\d+)/:code", asyncHandler(eventByCode));
@@ -91,7 +93,14 @@ async function teamByNumber(req: Request<{ number: string }>, res: Response) {
         return;
     }
 
-    res.send(team);
+    let { avatarUrl, ...rest } = team;
+    res.send({ ...rest, avatar: avatarUrl ?? null });
+}
+
+async function teamAvatars(req: Request<{ number: string }>, res: Response) {
+    let teamNumber = +req.params.number;
+
+    res.send(await avatarHistoryLoader([teamNumber]));
 }
 
 async function getTeps(
@@ -281,7 +290,12 @@ async function teamSearch(req: Request, res: Response) {
         }
     }
 
-    res.send(entities);
+    res.send(
+        entities.map((e) => {
+            let { avatarUrl, ...rest } = e;
+            return { ...rest, avatar: avatarUrl ?? null };
+        })
+    );
 }
 
 async function eventByCode(req: Request<{ season: string; code: string }>, res: Response) {
