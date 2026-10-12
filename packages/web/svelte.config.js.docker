@@ -22,7 +22,7 @@ const config = {
                 ],
                 "script-src": ["self", "www.googletagmanager.com"],
                 "style-src": ["self", "unsafe-inline", "fonts.googleapis.com"],
-                "img-src": ["self", "data:", "fonts.googleapis.com"],
+                "img-src": ["self", "data:", "fonts.googleapis.com", "event-portal.firstinspires.org"],
                 "font-src": ["self", "fonts.gstatic.com", "fonts.googleapis.com"],
                 "frame-src": ["self", "www.youtube.com"],
                 "frame-ancestors": ["self"],
