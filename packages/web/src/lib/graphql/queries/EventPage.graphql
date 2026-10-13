@@ -59,6 +59,7 @@ query EventPage($season: Int!, $code: String!) {
             team {
                 number
                 name
+                avatar
             }
         }
         relatedEvents {
