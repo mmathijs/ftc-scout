@@ -47,6 +47,7 @@
     class:not-on-field={!onField}
     class:focused={focusedTeam == number && (showRemoteFocus || team.alliance != Alliance.Solo)}
     class:winner
+    {title}
 >
     <a
         class="inner"
