@@ -68,10 +68,6 @@
             </span>
             <em class="name">{name}</em>
         </div>
-        {#if avatar}
-            <img src={avatar} alt="" class="avatar-large" loading="lazy" />
-        {/if}
-        <div class="tooltip">{title}</div>
     </a>
 </td>
 
@@ -263,8 +259,7 @@
             display: none;
         }
 
-        .avatar,
-        .avatar-large {
+        .avatar {
             display: none;
         }
 
