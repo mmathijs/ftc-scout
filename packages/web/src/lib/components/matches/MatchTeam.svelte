@@ -47,6 +47,7 @@
     class:not-on-field={!onField}
     class:focused={focusedTeam == number && (showRemoteFocus || team.alliance != Alliance.Solo)}
     class:winner
+    {title}
 >
     <a
         class="inner"
@@ -68,10 +69,6 @@
             </span>
             <em class="name">{name}</em>
         </div>
-        {#if avatar}
-            <img src={avatar} alt="" class="avatar-large" loading="lazy" />
-        {/if}
-        <div class="tooltip">{title}</div>
     </a>
 </td>
 
@@ -88,8 +85,6 @@
     }
 
     .inner {
-        position: relative;
-
         display: flex;
         flex-direction: row;
         align-items: flex-start;
@@ -134,65 +129,6 @@
         object-fit: contain;
         border-radius: 2px;
         flex-shrink: 0;
-    }
-
-    .avatar-large {
-        display: none;
-        position: absolute;
-        top: var(--sm-pad);
-        right: var(--sm-pad);
-        z-index: var(--hovered-row-zi);
-
-        width: 40px;
-        height: 40px;
-        object-fit: contain;
-        border-radius: 2px;
-
-        background: var(--fg-color);
-        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
-        pointer-events: none;
-    }
-
-    .red .avatar-large {
-        background: var(--red-team-color);
-    }
-
-    .blue .avatar-large {
-        background: var(--blue-team-color);
-    }
-
-    .solo .avatar-large {
-        background: var(--neutral-team-color);
-    }
-
-    .inner:hover .avatar-large {
-        display: block;
-    }
-
-    .tooltip {
-        display: none;
-        position: absolute;
-        top: calc(100% + var(--sm-gap));
-        left: var(--sm-pad);
-        z-index: var(--hovered-row-zi);
-
-        max-width: 220px;
-        padding: var(--sm-pad) var(--sm-gap);
-        border-radius: 4px;
-
-        background: var(--inverse-bg-color);
-        color: var(--inverse-text-color);
-        font-size: var(--sm-font-size);
-        font-weight: normal;
-        text-align: left;
-        white-space: normal;
-
-        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
-        pointer-events: none;
-    }
-
-    .inner:hover .tooltip {
-        display: block;
     }
 
     :global(.hearts) + td .inner {
@@ -251,8 +187,7 @@
     }
 
     @container (max-width: 84px) {
-        .avatar,
-        .avatar-large {
+        .avatar {
             display: none;
         }
     }
@@ -263,8 +198,7 @@
             display: none;
         }
 
-        .avatar,
-        .avatar-large {
+        .avatar {
             display: none;
         }
 
