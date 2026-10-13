@@ -476,6 +476,8 @@
                     eventName={event.name}
                     data={rankingTeams}
                     {focusedTeam}
+                    matches={event.matches}
+                    eventCode={event.code}
                 />
             </TabContent>
 
