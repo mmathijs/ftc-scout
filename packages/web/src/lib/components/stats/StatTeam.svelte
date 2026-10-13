@@ -9,6 +9,7 @@
     export let focusedTeam: number | null;
     $: number = val.number;
     $: name = val.name;
+    $: avatar = val.avatar ?? null;
     $: href = `/teams/${number}`;
 
     let clickAction = getContext(TEAM_CLICK_ACTION_CTX) as
@@ -29,8 +30,13 @@
     }}
 >
     <a class="wrap" {href} role={browser && clickAction ? "button" : "link"}>
-        <span> {number} </span>
-        <em class="name">{name}</em>
+        <div class="text">
+            <span> {number} </span>
+            <em class="name">{name}</em>
+        </div>
+        {#if avatar}
+            <img src={avatar} alt="" class="avatar" width="40" height="40" loading="lazy" />
+        {/if}
     </a>
 </td>
 
@@ -48,8 +54,9 @@
 
     a {
         display: flex;
-        flex-direction: column;
-        align-items: flex-start;
+        flex-direction: row;
+        align-items: center;
+        gap: var(--sm-gap);
 
         text-decoration: none;
         color: inherit;
@@ -57,7 +64,13 @@
         padding: var(--sm-pad);
     }
 
-    a * {
+    .text {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .text * {
         display: block;
         min-width: 100%;
         width: 20ch;
@@ -69,13 +82,25 @@
         padding-right: calc(1px); /* don't cut italics */
     }
 
+    .avatar {
+        width: 40px;
+        height: 40px;
+        object-fit: contain;
+        border-radius: 2px;
+        flex-shrink: 0;
+    }
+
     @media (max-width: 600px) {
         a {
             padding: var(--sm-pad);
         }
 
-        a * {
+        .text * {
             width: 14ch;
+        }
+
+        .avatar {
+            display: none;
         }
     }
 

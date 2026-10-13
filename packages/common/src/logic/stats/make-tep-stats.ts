@@ -94,6 +94,7 @@ export function getTepStatSet(
                     ty: "team",
                     name: d.team.name,
                     number: d.team.number,
+                    avatar: d.team.avatar ?? null,
                 }),
             }),
             new NonRankStatColumn({
