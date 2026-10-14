@@ -86,7 +86,7 @@
     }
 
     .scroll-wrapper {
-        padding: var(--lg-pad);
+        padding: var(--lg-pad) 0;
         padding-top: 0;
 
         max-height: 100%;
@@ -97,6 +97,11 @@
     .scroll-wrapper:focus-visible,
     .scroll-wrapper:focus {
         outline: none;
+    }
+
+    .scroll-wrapper > :global(*) {
+        padding-left: var(--lg-pad);
+        padding-right: var(--lg-pad);
     }
 
     .close {
