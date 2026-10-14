@@ -61,7 +61,7 @@
         flex-direction: column;
         height: auto;
         max-height: calc(100% - var(--lg-gap) * 2);
-        max-width: 100%;
+        max-width: calc(100% - var(--lg-gap) * 2);
         position: relative;
 
         box-shadow: -2px 2px 10px 3px rgba(0, 0, 0, 10%);
