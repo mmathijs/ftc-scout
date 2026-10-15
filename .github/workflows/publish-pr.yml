@@ -60,6 +60,6 @@ jobs:
         run: |
           for name in server web; do
             target="${IMAGE_PREFIX,,}-$name:pr-$NUMBER"
-            skopeo copy --dest-creds "$REGISTRY_USER:$REGISTRY_PASSWORD" \
+            skopeo copy --all --dest-creds "$REGISTRY_USER:$REGISTRY_PASSWORD" \
               "oci-archive:images/image-$name/image.tar" "docker://$target"
           done
