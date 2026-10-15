@@ -36,8 +36,6 @@ COPY ./packages/web/svelte.config.js.${SVELTE_CONFIG_ENV} ./packages/web/svelte.
 
 # Build application
 RUN npm run common:build
-RUN npm run server:build
-RUN npm run server:schema
 RUN npm run web:gen
 RUN npm run web:build
 
