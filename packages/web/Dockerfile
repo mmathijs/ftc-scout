@@ -27,7 +27,7 @@ COPY --link packages/web/package.json packages/web/package.json
 RUN --mount=type=cache,target=/root/.npm npm ci --include=dev
 
 # Switch between codegen files between old and docker version
-ARG CODEGEN_ENV=prod
+ARG CODEGEN_ENV=ci
 
 COPY --link . .
 COPY ./packages/web/codegen.yml.${CODEGEN_ENV} ./packages/web/codegen.yml
@@ -35,6 +35,8 @@ COPY ./packages/web/svelte.config.js.${CODEGEN_ENV} ./packages/web/svelte.config
 
 # Build application
 RUN npm run common:build
+RUN npm run server:build
+RUN npm run server:schema
 RUN npm run web:gen
 RUN npm run web:build
 
