@@ -107,7 +107,7 @@
     let focusedTeam: number | null = null;
     $: focusedTeamData =
         event?.teams?.find((t) => t.teamNumber == focusedTeam) ??
-        event?.awards?.find((a) => a.teamNumber == focusedTeam)!;
+        event?.awwards?.find((a) => a.teamNumber == focusedTeam)!;
     setContext(TEAM_CLICK_ACTION_CTX, (t: number) => (focusedTeam = focusedTeam == t ? null : t));
 
     // $: if (event && !event.remote) watchEvent(event, refresh);
@@ -311,7 +311,7 @@
                 [faBolt, "Matches", "matches", (event?.matches?.length ?? 0) > 0],
                 [faTrophy, "Rankings", "rankings", !!stats.length],
                 [faLightbulb, "Insights", "insights", !!insights.length],
-                [faMedal, "Awards", "awards", (event?.awards?.length ?? 0) > 0],
+                [faMedal, "Awards", "awards", (event?.awwards?.length ?? 0) > 0],
                 [faHashtag, `Teams (${event.teams.length})`, "teams", !!event.teams.length],
             ]}
             bind:selectedTab
@@ -363,7 +363,7 @@
             </TabContent>
 
             <TabContent name="awards">
-                <Awards awards={event.awards} {season} eventCode={event.code} {focusedTeam} />
+                <Awards awards={event.awwards} {season} eventCode={event.code} {focusedTeam} />
             </TabContent>
 
             <TabContent name="teams">
