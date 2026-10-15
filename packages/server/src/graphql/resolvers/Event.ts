@@ -138,7 +138,7 @@ export const EventGQL: GraphQLObjectType = new GraphQLObjectType({
                     .getMany(),
         },
 
-        awards: {
+        awwards: {
             type: list(nn(AwardGQL)),
             resolve: dataLoaderResolverList<Event, Award, { season: Season; eventCode: string }>(
                 (event) => ({ season: event.season, eventCode: event.code }),

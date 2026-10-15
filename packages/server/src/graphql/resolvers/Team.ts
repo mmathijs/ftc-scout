@@ -170,7 +170,7 @@ export const TeamGQL: GraphQLObjectType = new GraphQLObjectType({
         website: nullTy(StrTy),
         createdAt: DateTimeTy,
         updatedAt: DateTimeTy,
-        awards: {
+        awwards: {
             type: list(nn(AwardGQL)),
             args: { season: nullTy(IntTy) },
             resolve: dataLoaderResolverList<

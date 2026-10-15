@@ -44,7 +44,7 @@ query EventPage($season: Int!, $code: String!) {
                 end
             }
         }
-        awards {
+        awwards {
             season
             eventCode
             type

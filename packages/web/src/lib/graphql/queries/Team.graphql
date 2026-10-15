@@ -40,7 +40,7 @@ query Team($number: Int!, $season: Int!) {
                 __typename
                 ...TeamPageStats
             }
-            awards {
+            awwards {
                 season
                 eventCode
                 teamNumber
