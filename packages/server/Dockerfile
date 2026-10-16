@@ -42,6 +42,9 @@ FROM base
 # Copy built application
 COPY --from=build /app /app
 
+# Needed for the arm version of server for canvas to work
+RUN apt-get update -qq && apt-get install -y --no-install-recommends libexpat1 && rm -rf /var/lib/apt/lists/*)
+
 # Start the server by default, this can be overwritten at runtime
 EXPOSE 8080
 CMD [ "npm", "run", "server:start" ]
