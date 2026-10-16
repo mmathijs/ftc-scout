@@ -18,7 +18,7 @@ FROM base as build
 
 # Install packages needed to build node modules
 RUN apt-get update -qq && \
-    apt-get install -y build-essential pkg-config python-is-python3
+    apt-get install -y build-essential pkg-config python-is-python3 libexpat1
 
 COPY --link package.json package-lock.json ./
 COPY --link packages/common/package.json packages/common/package.json
@@ -41,6 +41,9 @@ FROM base
 
 # Copy built application
 COPY --from=build /app /app
+
+# Needed for the arm version of server for canvas to work
+RUN apt-get update -qq && apt-get install -y --no-install-recommends libexpat1 && rm -rf /var/lib/apt/lists/*
 
 # Start the server by default, this can be overwritten at runtime
 EXPOSE 8080
