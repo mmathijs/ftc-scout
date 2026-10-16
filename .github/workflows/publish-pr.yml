@@ -47,26 +47,19 @@ jobs:
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ github.token }}
 
-      - name: Log in to the Container registry
+      - name: Install skopeo
         if: steps.pr.outputs.number
-        uses: docker/login-action@v4
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+        run: sudo apt-get update && sudo apt-get install -y skopeo
 
       - name: Publish pr-${{ steps.pr.outputs.number }}
         if: steps.pr.outputs.number
         env:
           NUMBER: ${{ steps.pr.outputs.number }}
+          REGISTRY_USER: ${{ github.repository_owner }}
+          REGISTRY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
         run: |
           for name in server web; do
-            loaded=$(docker load --input "images/image-$name/image.tar" | sed -n 's/^Loaded image\( ID\)\{0,1\}: //p' | head -n 1)
-            if [ -z "$loaded" ]; then
-              echo "image-$name holds no image" >&2
-              exit 1
-            fi
             target="${IMAGE_PREFIX,,}-$name:pr-$NUMBER"
-            docker tag "$loaded" "$target"
-            docker push "$target"
+            skopeo copy --all --dest-creds "$REGISTRY_USER:$REGISTRY_PASSWORD" \
+              "oci-archive:images/image-$name/image.tar" "docker://$target"
           done
