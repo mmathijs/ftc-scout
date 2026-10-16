@@ -44,7 +44,7 @@ export const TeamEventParticipationGQL = new GraphQLObjectType({
                 (k, t) => k == t.number
             ),
         },
-        awards: {
+        awwards: {
             type: list(nn(AwardGQL)),
             resolve: dataLoaderResolverList<
                 TeamEventParticipation,

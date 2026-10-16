@@ -7,7 +7,7 @@
     import { TEAM_CLICK_ACTION_CTX } from "$lib/components/matches/MatchTeam.svelte";
     import { getContext } from "svelte";
 
-    type Award = NonNullable<EventPageQuery["eventByCode"]>["awards"][number];
+    type Award = NonNullable<EventPageQuery["eventByCode"]>["awwards"][number];
 
     export let awards: Award[];
     export let season: Season;

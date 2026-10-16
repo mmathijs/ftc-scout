@@ -131,12 +131,12 @@
                     remote={event.remote}
                 />
 
-                {#if tep.awards.length}
+                {#if tep.awwards.length}
                     <InfoIconRow icon={faMedal}>
-                        {#each tep.awards as award, i}
+                        {#each tep.awwards as award, i}
                             <Award
                                 {award}
-                                comma={i != tep.awards.length - 1}
+                                comma={i != tep.awwards.length - 1}
                                 season={event.season}
                             />
                         {/each}
