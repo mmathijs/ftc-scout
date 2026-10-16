@@ -164,11 +164,12 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: .
+          platforms: linux/amd64,linux/arm64
           file: ${{ matrix.file }}
           build-args: ${{ matrix.build-args }}
           secrets: ${{ matrix.build-secrets }}
           push: ${{ env.PUBLISH == 'true' }}
-          outputs: ${{ env.FORK_PR == 'true' && format('type=docker,dest={0}/image.tar', runner.temp) || '' }}
+          outputs: ${{ env.FORK_PR == 'true' && format('type=oci,dest={0}/image.tar', runner.temp) || '' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=${{ matrix.name }}
