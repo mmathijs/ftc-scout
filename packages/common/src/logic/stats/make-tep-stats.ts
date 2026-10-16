@@ -77,6 +77,7 @@ export function getTepStatSet(season: Season, remote: boolean): StatSet<any> {
                     ty: "team",
                     name: d.team.name,
                     number: d.team.number,
+                    avatar: d.team.avatar ?? null,
                 }),
             }),
             new NonRankStatColumn({

@@ -25,7 +25,13 @@
 </script>
 
 <a {href} {title} use:watchForFocus={{ store: focusNum, myNum: index }} on:keydown on:click>
-    <span class="icon"> <Fa {icon} /> </span>
+    <span class="icon">
+        {#if doc.__typename == "Team" && doc.avatar}
+            <img src={doc.avatar} alt="" class="avatar" />
+        {:else}
+            <Fa {icon} />
+        {/if}
+    </span>
 
     <span class="info">
         {#if doc.__typename == "Event"}
@@ -85,5 +91,19 @@
 
     .extra {
         color: var(--secondary-text-color);
+    }
+
+    .icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 20px;
+    }
+
+    .avatar {
+        width: 20px;
+        height: 20px;
+        object-fit: contain;
+        border-radius: 2px;
     }
 </style>
