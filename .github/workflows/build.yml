@@ -6,7 +6,6 @@ name: Build
 #  - IMAGE_PREFIX: the image name before -server and -web for example: ghcr.io/me/ftc-scout-beta;
 #  - WEB_CODEGEN_ENV: CODEGEN_ENV build argument from web.
 # Cache node_modules, PR use main's cache (read only)
-# test
 on:
   push:
     branches:

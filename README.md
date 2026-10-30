@@ -1,7 +1,5 @@
 # FTCScout
 
-test
-
 FTCScout is a FIRST Tech Challenge (FTC) statistics website designed to provide the most detailed level of statistics analysis possible. It was inspired by [The Orange Alliance](https://theorangealliance.org/), [FTCScores](https://ftcscores.com/), [FTC Stats](http://www.ftcstats.org/), and [FTC Events](https://ftc-events.firstinspires.org/).
 
 It includes advanced visualizations, including 3D field maps.
