@@ -42,6 +42,7 @@
         "chartjs-plugin-zoom": "^2.2.0",
         "crypto-hash": "^4.0.0",
         "export-to-csv": "^0.2.1",
+        "ftc-embeds": "^0.1.0",
         "graphql": "^16.7.1",
         "svelte-fa": "^3.0.4",
         "svelte-infinite-scroll": "^2.0.1",

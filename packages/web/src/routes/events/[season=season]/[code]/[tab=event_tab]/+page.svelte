@@ -22,6 +22,7 @@
         faTrophy,
         faVideo,
         faRocket,
+        faMap,
     } from "@fortawesome/free-solid-svg-icons";
     import { prettyPrintDateRangeString } from "$lib/printers/dateRange";
     import { prettyPrintURL } from "$lib/printers/url";
@@ -42,6 +43,7 @@
     import { isNonCompetition } from "$lib/util/event-type";
     import Head from "$lib/components/Head.svelte";
     import Insights from "./Insights.svelte";
+    import Pits from "./Pits.svelte";
     import { getMatchScores } from "$lib/components/stats/getMatchScores";
     import { unsubscribe, watchEvent } from "./watchEvent";
     import { getClient } from "../../../../../lib/graphql/client";
@@ -440,6 +442,7 @@
                 [faMedal, "Awards", "awards", (event?.awards?.length ?? 0) > 0],
                 [faRocket, "Advancement", "advancement", showAdvancementTab],
                 [faHashtag, `Teams (${event.teams.length})`, "teams", showTeamsTab],
+                [faMap, "Pits", "pits", !!event.hasPitMap],
             ]}
             bind:selectedTab
         >
@@ -544,6 +547,10 @@
 
             <TabContent name="teams">
                 <Teams teams={event.teams} {focusedTeam} />
+            </TabContent>
+
+            <TabContent name="pits">
+                <Pits {season} eventCode={event.code} {focusedTeam} />
             </TabContent>
         </TabbedCard>
     </Loading>

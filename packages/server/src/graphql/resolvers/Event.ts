@@ -44,6 +44,7 @@ import { AdvancementScoreGQL } from "./AdvancementScore";
 import { AdvancementScore } from "../../db/entities/AdvancementScore";
 import { TepStatsUnionGQL } from "../dyn/dyn-types-schema";
 import { addTypename } from "../dyn/tep";
+import { PitMapGQL, hasPitMapResolver, pitMapResolver } from "./PitMap";
 
 export const EventGQL: GraphQLObjectType = new GraphQLObjectType({
     name: "Event",
@@ -111,6 +112,8 @@ export const EventGQL: GraphQLObjectType = new GraphQLObjectType({
             },
         },
         webcasts: listTy(StrTy),
+        hasPitMap: { ...BoolTy, resolve: hasPitMapResolver },
+        pitMap: { type: PitMapGQL, resolve: pitMapResolver },
         timezone: StrTy,
         start: DateTy,
         end: DateTy,
