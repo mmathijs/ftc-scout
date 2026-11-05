@@ -78,7 +78,7 @@ async function removeDeletedAvatars(season: Season, avatars: Map<number, string>
         // URL expression must match TeamAvatar.urlFor.
         await em.query(
             `UPDATE team SET avatar_url = (
-                SELECT 'https://event-portal.firstinspires.org/ftc/' || ta.season
+                SELECT 'https://event-portal.firstinspires.org/ftc/' || (ta.season + 1)
                     || '/avatars/composed/' || ta.team_number || '_' || ta.uuid
                 FROM team_avatar ta
                 WHERE ta.team_number = team.number
