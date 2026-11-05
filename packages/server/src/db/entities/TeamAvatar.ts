@@ -45,7 +45,9 @@ export class TeamAvatar extends BaseEntity {
     }
 
     static urlFor(season: Season, teamNumber: number, uuid: string): string {
-        return `https://event-portal.firstinspires.org/ftc/${season}/avatars/composed/${teamNumber}_${uuid}`;
+        return `https://event-portal.firstinspires.org/ftc/${
+            season + 1
+        }/avatars/composed/${teamNumber}_${uuid}`;
     }
 
     static fromParsed(season: Season, teamNumber: number, uuid: string): TeamAvatar {
