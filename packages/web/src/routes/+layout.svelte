@@ -4,6 +4,7 @@
     import Sidebar from "$lib/components/nav/Sidebar.svelte";
     import { afterNavigate } from "$app/navigation";
     import { sendAnalyticsRequest } from "./analytics";
+    import interLatin from "$lib/fonts/inter/inter-latin.woff2?url";
 
     if (browser) {
         // Svelte uses window.scrollTo to emulate the scroll resetting when navigation. However we
@@ -24,12 +25,7 @@
 </script>
 
 <svelte:head>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" />
-    <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap"
-        rel="stylesheet"
-    />
+    <link rel="preload" href={interLatin} as="font" type="font/woff2" crossorigin="anonymous" />
 </svelte:head>
 
 <Navbar />

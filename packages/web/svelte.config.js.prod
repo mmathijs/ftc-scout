@@ -17,10 +17,10 @@ const config = {
             directives: {
                 "default-src": ["self", 'ws:', "ftc-scout-server.fly.dev", "api.ftcscout.org"],
                 "script-src": ["self", "www.googletagmanager.com"],
-                "style-src": ["self", "unsafe-inline", "fonts.googleapis.com"],
+                "style-src": ["self", "unsafe-inline"],
                 "style-src-attr": ["unsafe-inline"],
-                "img-src": ["self", "data:", "fonts.googleapis.com", "ftc-scout-server.fly.dev"],
-                "font-src": ["self", "fonts.gstatic.com", "fonts.googleapis.com"],
+                "img-src": ["self", "data:", "ftc-scout-server.fly.dev"],
+                "font-src": ["self"],
                 "frame-ancestors": ["self"],
                 "upgrade-insecure-requests": true,
             },
