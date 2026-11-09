@@ -138,7 +138,7 @@
 
     <Card vis={false}>
         <div class="sponsor">
-            <Sponsor />
+            <Sponsor shownWhen="(max-width: 1500px)" />
         </div>
     </Card>
 </WidthProvider>
