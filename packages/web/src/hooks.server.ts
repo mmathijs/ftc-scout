@@ -1,5 +1,6 @@
 import type { Handle } from "@sveltejs/kit";
 import { THEME_COOKIE_NAME } from "./lib/constants";
+import { criticalCss } from "$lib/server/critical-css";
 
 export const handle: Handle = async ({ event, resolve }) => {
     let theme = "system";
@@ -8,9 +9,11 @@ export const handle: Handle = async ({ event, resolve }) => {
         theme = JSON.parse(cookieVal ?? "").preference ?? "system";
     } catch {}
 
+    let css = criticalCss();
     let response = await resolve(event, {
         filterSerializedResponseHeaders: (name) => ["content-type"].indexOf(name) != -1,
-        transformPageChunk: ({ html }) => html.replace("%theme%", `class="${theme}"`),
+        transformPageChunk: ({ html, done }) =>
+            css({ html: html.replace("%theme%", `class="${theme}"`), done }),
     });
 
     return response;
