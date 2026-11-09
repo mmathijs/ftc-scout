@@ -18,6 +18,10 @@ import { sha256 } from "crypto-hash";
 
 let client: ApolloClient<NormalizedCacheObject> | null = null;
 
+export function apiOrigin(): string {
+    return `http${IS_DEV ? "" : "s"}://${env.PUBLIC_SERVER_ORIGIN}`;
+}
+
 export function getClient(
     fetch?: NonNullable<HttpOptions["fetch"]>
 ): ApolloClient<NormalizedCacheObject> {
@@ -27,7 +31,7 @@ export function getClient(
     let s = IS_DEV ? "" : "s";
 
     let httpLink = new HttpLink({
-        uri: `http${s}://${env.PUBLIC_SERVER_ORIGIN}/graphql`,
+        uri: `${apiOrigin()}/graphql`,
         credentials: "omit",
         headers: { [env.PUBLIC_FRONTEND_CODE!]: "." },
         fetch,

@@ -5,6 +5,7 @@
     import { afterNavigate } from "$app/navigation";
     import { sendAnalyticsRequest } from "./analytics";
     import interLatin from "$lib/fonts/inter/inter-latin.woff2?url";
+    import { apiOrigin } from "$lib/graphql/client";
     import { onMount } from "svelte";
 
     // Load all CSS that is used on other pages after hydration
@@ -45,6 +46,7 @@
 
 <svelte:head>
     <link rel="preload" href={interLatin} as="font" type="font/woff2" crossorigin="anonymous" />
+    <link rel="preconnect" href={apiOrigin()} crossorigin="anonymous" />
 </svelte:head>
 
 <Navbar />
