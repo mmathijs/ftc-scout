@@ -19,6 +19,8 @@ export async function getData<Data = any, Variables extends OperationVariables =
     noCache: boolean = false
 ): Promise<Readable<ApolloQueryResult<Data> | null>> {
     let keyWithVars = bypassCacheKey + "-" + JSON.stringify(variables);
+    // Prevents the teams + event list to be SSR
+    if (bypassCacheKey && !browser) return readable(null);
     if (bypassCacheKey && cache[keyWithVars]) {
         return readable(cache[keyWithVars]);
     }
@@ -55,6 +57,7 @@ export function getDataSync<Data = any, Variables extends OperationVariables = o
     bypassCacheKey: string | null = null
 ): Readable<ApolloQueryResult<Data> | null> {
     let keyWithVars = bypassCacheKey + "-" + JSON.stringify(variables);
+    if (bypassCacheKey && !browser) return readable(null);
     if (bypassCacheKey && cache[keyWithVars]) {
         return readable(cache[keyWithVars]);
     }

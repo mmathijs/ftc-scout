@@ -63,7 +63,7 @@
 
 <hr />
 
-<Sponsor />
+<Sponsor sizes="250px" />
 
 <style>
     hr,

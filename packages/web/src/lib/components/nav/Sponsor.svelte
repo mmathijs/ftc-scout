@@ -1,4 +1,20 @@
 <script lang="ts">
+    import offset600 from "$lib/assets/sponsors/offset-600.webp";
+    import offset840 from "$lib/assets/sponsors/offset-840.webp";
+    import offset1200 from "$lib/assets/sponsors/offset-1200.webp";
+    import offset1600 from "$lib/assets/sponsors/offset-1600.webp";
+
+    /** How wide the banner is shown (the img's `sizes`). */
+    export let sizes = "min(720px, 100vw)";
+
+    $: priority = shownWhen ? { fetchpriority: "high" } : {};
+
+    export let shownWhen: string | null = null;
+
+    // A 1x1 transparent GIF, what the browser loads where a copy with shownWhen is hidden.
+    const NOTHING =
+        "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+
     // import Fa from "svelte-fa";
 
     // Ensure animations work properly
@@ -47,7 +63,22 @@
 <div class="container">
     <p>Sponsored by</p>
     <a class="dark" href="https://www.offsetrobotics.com/" target="_blank">
-        <img src="/img/offsetjpeg.jpg" alt="Offset Robotics Logo" />
+        <picture>
+            {#if shownWhen}
+                <source media="not all and {shownWhen}" srcset={NOTHING} />
+            {/if}
+            <img
+                src={offset1200}
+                srcset="{offset600} 600w, {offset840} 840w, {offset1200} 1200w, {offset1600} 1600w"
+                {sizes}
+                width="1600"
+                height="333"
+                loading={shownWhen ? "eager" : "lazy"}
+                {...priority}
+                decoding="async"
+                alt="Offset Robotics Logo"
+            />
+        </picture>
     </a>
 
     <!-- Dark Mode -->
@@ -77,9 +108,10 @@
         text-align: center;
     }
 
-    .container > a > img {
+    .container > a > picture > img {
         width: 100%;
         max-width: 720px;
+        height: auto;
     }
 
     a:hover {
