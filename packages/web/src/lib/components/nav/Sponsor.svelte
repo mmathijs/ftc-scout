@@ -7,6 +7,8 @@
     /** How wide the banner is shown (the img's `sizes`). */
     export let sizes = "min(720px, 100vw)";
 
+    $: priority = shownWhen ? { fetchpriority: "high" } : {};
+
     export let shownWhen: string | null = null;
 
     // A 1x1 transparent GIF, what the browser loads where a copy with shownWhen is hidden.
@@ -72,6 +74,7 @@
                 width="1600"
                 height="333"
                 loading={shownWhen ? "eager" : "lazy"}
+                {...priority}
                 decoding="async"
                 alt="Offset Robotics Logo"
             />
