@@ -12,8 +12,7 @@ export const handle: Handle = async ({ event, resolve }) => {
     let css = criticalCss();
     let response = await resolve(event, {
         filterSerializedResponseHeaders: (name) => ["content-type"].indexOf(name) != -1,
-        transformPageChunk: ({ html, done }) =>
-            css({ html: html.replace("%theme%", `class="${theme}"`), done }),
+        transformPageChunk: ({ html }) => css(html.replace("%theme%", `class="${theme}"`)),
     });
 
     return response;
