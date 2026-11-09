@@ -16,8 +16,6 @@ const beasties = new Beasties({
     allowRules: THEME_RULES,
 });
 
-const FONT_FACE = /@font-face\{[^}]*\}/g;
-
 const MAX_RESULTS = 512;
 const results = new Map<string, string>();
 
@@ -44,9 +42,7 @@ export async function usedCss(html: string, style: InlineStyle): Promise<string 
     let used = /<style(?:\s[^>]*)?>([\s\S]*?)<\/style>/.exec(out)?.[1];
     if (used === undefined) return null;
 
-    let fonts = (style.css.match(FONT_FACE) ?? []).join("");
-    let css = fonts + used.replace(FONT_FACE, "");
-    results.set(key, css);
+    results.set(key, used);
     if (results.size > MAX_RESULTS) results.delete(results.keys().next().value!);
-    return css;
+    return used;
 }

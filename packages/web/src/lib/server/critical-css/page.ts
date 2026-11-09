@@ -8,6 +8,7 @@ export type PageTokens = { classes: Set<string>; ids: Set<string> };
 export const THEME_RULES = [/body\.(dark|light|system)/, /body:not\(\.light\)/];
 
 const STYLE = /(<style(?:\s[^>]*)?>)([\s\S]*?)<\/style>/;
+const NONCE = /\snonce="[^"]*"/;
 const SCRIPT = /(<script\b[^>]*>)[\s\S]*?(<\/script>)/g;
 // SvelteKit writes the stylesheets it inlined as disabled links, for client-side navigation.
 const DISABLED_LINK =
@@ -20,6 +21,15 @@ export function findStyle(html: string): InlineStyle | null {
 
 export function replaceStyle(html: string, style: InlineStyle, css: string): string {
     return html.replace(style.tag, () => style.open + css + "</style>");
+}
+
+export function addHeadStyle(html: string, css: string): string {
+    let style = findStyle(html);
+    let nonce = NONCE.exec(style?.open ?? "") ?? NONCE.exec(html);
+    let tag = `<style${nonce?.[0] ?? ""}>${css}</style>`;
+    return style
+        ? html.replace(style.tag, () => tag + style!.tag)
+        : html.replace("</head>", () => tag + "</head>");
 }
 
 export function withoutScripts(html: string): string {
