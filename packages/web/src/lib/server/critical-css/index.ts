@@ -1,9 +1,9 @@
 import { building } from "$app/environment";
-import { findStyle, linkBeforeBodyEnd, replaceStyle, takeDisabledLinks } from "./page";
+import { findStyle, markLinksLater, noscriptLinks, replaceStyle } from "./page";
 import { usedCss } from "./used-css";
 
 export function criticalCss(): (html: string) => Promise<string> {
-    let deferred: string[] = [];
+    let later: string[] = [];
     return async (html) => {
         let style = building ? null : findStyle(html);
         if (style) {
@@ -11,11 +11,11 @@ export function criticalCss(): (html: string) => Promise<string> {
                 console.error("critical CSS:", e);
                 return null;
             });
-            if (css !== null) html = replaceStyle(takeDisabledLinks(html, deferred), style, css);
+            if (css !== null) html = replaceStyle(markLinksLater(html, later), style, css);
         }
-        if (deferred.length && html.includes("</body>")) {
-            html = linkBeforeBodyEnd(html, deferred);
-            deferred = [];
+        if (later.length && html.includes("</body>")) {
+            html = noscriptLinks(html, later);
+            later = [];
         }
         return html;
     };

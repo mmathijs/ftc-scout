@@ -26,16 +26,17 @@ export function withoutScripts(html: string): string {
     return html.replace(SCRIPT, "$1$2");
 }
 
-export function takeDisabledLinks(html: string, hrefs: string[]): string {
-    return html.replace(DISABLED_LINK, (_, href: string) => {
+// The root layout enables links marked data-later once the page has hydrated.
+export function markLinksLater(html: string, hrefs: string[]): string {
+    return html.replace(DISABLED_LINK, (link: string, href: string) => {
         hrefs.push(href);
-        return "";
+        return link.replace(" disabled ", " disabled data-later ");
     });
 }
 
-export function linkBeforeBodyEnd(html: string, hrefs: string[]): string {
+export function noscriptLinks(html: string, hrefs: string[]): string {
     let tags = hrefs.map((href) => `<link href="${href}" rel="stylesheet">`).join("");
-    return html.replace("</body>", () => tags + "</body>");
+    return html.replace("</body>", () => `<noscript>${tags}</noscript></body>`);
 }
 
 /** The class names and ids in the page's attributes */

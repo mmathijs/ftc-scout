@@ -5,6 +5,25 @@
     import { afterNavigate } from "$app/navigation";
     import { sendAnalyticsRequest } from "./analytics";
     import interLatin from "$lib/fonts/inter/inter-latin.woff2?url";
+    import { onMount } from "svelte";
+
+    // Load all CSS that is used on other pages after hydration
+    onMount(() => {
+        for (let link of document.querySelectorAll<HTMLLinkElement>("link[data-later]")) {
+            link.removeAttribute("data-later");
+            link.removeAttribute("media");
+            link.removeAttribute("disabled");
+        }
+        // Input are kinda bugged in Chrome when fonts load later
+        document.fonts?.ready.then(() => {
+            for (let el of document.querySelectorAll<HTMLElement>("select, input")) {
+                let display = el.style.display;
+                el.style.display = "none";
+                void el.offsetHeight;
+                el.style.display = display;
+            }
+        });
+    });
 
     if (browser) {
         // Svelte uses window.scrollTo to emulate the scroll resetting when navigation. However we
