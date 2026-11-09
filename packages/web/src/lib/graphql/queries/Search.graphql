@@ -10,8 +10,8 @@ query TeamsSearch {
     }
 }
 
-query TeamsRegionSearch($region: RegionOption) {
-    teamsSearch(region: $region) {
+query TeamsRegionSearch($region: RegionOption, $limit: Int) {
+    teamsSearch(region: $region, limit: $limit) {
         ...TeamsSearchTeam
     }
 }
