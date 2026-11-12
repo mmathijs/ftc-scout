@@ -1,7 +1,9 @@
 import {
+    ALL_SEASONS,
     DESCRIPTORS,
     DateTy,
     EventTypeOption,
+    FloatTy,
     IntTy,
     RegionOption,
     RemoteOption,
@@ -12,7 +14,9 @@ import {
     getMatchStatSet,
     getRegionCodes,
     getTepStatSet,
+    list,
     listTy,
+    makeGQLEnum,
     nn,
     nullTy,
     wr,
@@ -33,6 +37,7 @@ import { FilterGQL, TyFilterGQL, filterGQLToSql, isFilteringOn } from "./filter-
 import { MatchScore } from "../../../db/entities/dyn/match-score";
 import { MatchGQL, singleSeasonScoreAwareMatchLoader } from "../Match";
 import graphqlFields from "graphql-fields";
+import { PredictionStat } from "../../../db/entities/PredictionStat";
 
 function RecordGqlTy(wrapped: GraphQLOutputType, namePrefix: string): GraphQLObjectType {
     let rowTy = new GraphQLObjectType({
@@ -67,8 +72,95 @@ const SpecificAlliance = new GraphQLObjectType({
 const TepRecordsGql = wr(nn(RecordGqlTy(TeamEventParticipationGQL, "Tep")));
 const MatchRecordsGql = wr(nn(RecordGqlTy(SpecificAlliance, "Match")));
 
+// "All" combines Quals + Playoff; Quals/Playoff isolate one or the other.
+const EpaStatLevelFilter = { All: "All", Quals: "Quals", Playoff: "Playoff" } as const;
+type EpaStatLevelFilter = (typeof EpaStatLevelFilter)[keyof typeof EpaStatLevelFilter];
+const EpaStatLevelFilterGQL = makeGQLEnum(EpaStatLevelFilter, "EpaStatLevelFilter");
+
+// Cumulative: running total since the season's first scored match. Daily: just that day's own
+// matches. Trailing: a rolling sum over the trailing `windowDays` days (e.g. "last 7 days").
+const EpaStatWindow = { Cumulative: "Cumulative", Daily: "Daily", Trailing: "Trailing" } as const;
+type EpaStatWindow = (typeof EpaStatWindow)[keyof typeof EpaStatWindow];
+const EpaStatWindowGQL = makeGQLEnum(EpaStatWindow, "EpaStatWindow");
+
+// Which team-strength model produced the prediction being graded. No "All" option here (unlike
+// level) - summing correct-counts across different models wouldn't mean anything.
+const PredictionSourceFilter = {
+    Epa: "Epa",
+    EpaNp: "EpaNp",
+    Opr: "Opr",
+    WinLoss: "WinLoss",
+} as const;
+type PredictionSourceFilter = (typeof PredictionSourceFilter)[keyof typeof PredictionSourceFilter];
+const PredictionSourceFilterGQL = makeGQLEnum(PredictionSourceFilter, "PredictionSourceFilter");
+
+const PredictionStatGQL = new GraphQLObjectType({
+    name: "PredictionStat",
+    fields: {
+        date: StrTy,
+        matchesConsidered: IntTy,
+        accuracy: nullTy(FloatTy),
+        brierScore: nullTy(FloatTy),
+        logLoss: nullTy(FloatTy),
+        scoreMae: nullTy(FloatTy),
+        scoreRmse: nullTy(FloatTy),
+    },
+});
+
+interface StatBucket {
+    eligibleCount: number;
+    classifiableCount: number;
+    correctCount: number;
+    brierSum: number;
+    logLossSum: number;
+    absErrSum: number;
+    sqErrSum: number;
+}
+function emptyBucket(): StatBucket {
+    return {
+        eligibleCount: 0,
+        classifiableCount: 0,
+        correctCount: 0,
+        brierSum: 0,
+        logLossSum: 0,
+        absErrSum: 0,
+        sqErrSum: 0,
+    };
+}
+function addBucket(acc: StatBucket, b: StatBucket) {
+    acc.eligibleCount += b.eligibleCount;
+    acc.classifiableCount += b.classifiableCount;
+    acc.correctCount += b.correctCount;
+    acc.brierSum += b.brierSum;
+    acc.logLossSum += b.logLossSum;
+    acc.absErrSum += b.absErrSum;
+    acc.sqErrSum += b.sqErrSum;
+}
+function metricsFor(b: StatBucket, source: PredictionSourceFilter) {
+    // WinLoss never predicts a score, so its abs/sq error sums are always exactly 0 - report that
+    // as "no data" (null) rather than a misleadingly perfect 0.00 MAE/RMSE.
+    let hasScoreModel = source != PredictionSourceFilter.WinLoss;
+    return {
+        matchesConsidered: b.eligibleCount,
+        accuracy: b.classifiableCount > 0 ? b.correctCount / b.classifiableCount : null,
+        brierScore: b.classifiableCount > 0 ? b.brierSum / b.classifiableCount : null,
+        logLoss: b.classifiableCount > 0 ? b.logLossSum / b.classifiableCount : null,
+        scoreMae: hasScoreModel && b.eligibleCount > 0 ? b.absErrSum / (b.eligibleCount * 2) : null,
+        scoreRmse:
+            hasScoreModel && b.eligibleCount > 0
+                ? Math.sqrt(b.sqErrSum / (b.eligibleCount * 2))
+                : null,
+    };
+}
+
 function name(ns: NamingStrategyInterface, exp: string): string {
     return exp.match(/^\w+$/) ? ns.columnName(exp, undefined, []) : exp;
+}
+
+// Some columns have the same name in tep and team_epa, so rename them to tep.x and team_epa.x
+const AMBIGUOUS_WITH_TEAM_EPA = new Set(["team_number", "season", "created_at", "updated_at"]);
+function qualifyForTep(colName: string): string {
+    return AMBIGUOUS_WITH_TEAM_EPA.has(colName) ? `tep.${colName}` : colName;
 }
 
 export const RecordQueries: Record<string, GraphQLFieldConfig<any, any>> = {
@@ -129,7 +221,7 @@ export const RecordQueries: Record<string, GraphQLFieldConfig<any, any>> = {
                 ? "oprTotalPoints"
                 : "oprTotalPointsNp";
             let rankerExp = statSet.getStat(sortBy ?? "")?.sqlExpr ?? defaultRankerSqlName;
-            let rankerSql = name(ns, rankerExp);
+            let rankerSql = qualifyForTep(name(ns, rankerExp));
 
             let defaultSortSql = name(ns, defaultRankerSqlName) + " DESC NULLS LAST";
 
@@ -143,17 +235,19 @@ export const RecordQueries: Record<string, GraphQLFieldConfig<any, any>> = {
             let chosenType = type ?? EventTypeOption.Competition;
 
             // Filter
-            let filterSql = filter ? filterGQLToSql(filter, statSet, (s) => name(ns, s)) : "true";
+            let filterSql = filter
+                ? filterGQLToSql(filter, statSet, (s) => qualifyForTep(name(ns, s)))
+                : "true";
 
             let contextAddedQ = Tep.createQueryBuilder("tep")
                 .select("tep.event_code", "tep_ec")
                 .addSelect("tep.team_number", "tep_tn")
                 .addSelect(
-                    `ROW_NUMBER() OVER (PARTITION BY "team_number" ORDER BY ${rankerSql} ${sortDirSql} NULLS LAST, ${defaultSortSql})`,
+                    `ROW_NUMBER() OVER (PARTITION BY tep."team_number" ORDER BY ${rankerSql} ${sortDirSql} NULLS LAST, ${defaultSortSql})`,
                     "ranking"
                 )
                 .addSelect(
-                    `ROW_NUMBER() OVER (PARTITION BY "team_number", ${filterSql} ORDER BY ${rankerSql} ${sortDirSql} NULLS LAST, ${defaultSortSql})`,
+                    `ROW_NUMBER() OVER (PARTITION BY tep."team_number", ${filterSql} ORDER BY ${rankerSql} ${sortDirSql} NULLS LAST, ${defaultSortSql})`,
                     "filter_ranking"
                 )
                 .addSelect(`${rankerSql}`, "ranker")
@@ -272,6 +366,78 @@ export const RecordQueries: Record<string, GraphQLFieldConfig<any, any>> = {
             }));
 
             return { data, offset: skip, count };
+        },
+    },
+    predictionStats: {
+        type: list(nn(PredictionStatGQL)),
+        args: {
+            season: IntTy,
+            source: { type: PredictionSourceFilterGQL },
+            level: { type: EpaStatLevelFilterGQL },
+            window: { type: EpaStatWindowGQL },
+            windowDays: nullTy(IntTy),
+        },
+        async resolve(
+            _source,
+            {
+                season,
+                source,
+                level,
+                window,
+                windowDays,
+            }: {
+                season: Season;
+                source: PredictionSourceFilter | null;
+                level: EpaStatLevelFilter | null;
+                window: EpaStatWindow | null;
+                windowDays: number | null;
+            }
+        ) {
+            if (ALL_SEASONS.indexOf(season) == -1) throw "invalid season";
+            source ??= PredictionSourceFilter.Epa;
+            level ??= EpaStatLevelFilter.All;
+            window ??= EpaStatWindow.Cumulative;
+            windowDays ??= 7;
+
+            let qb = DATA_SOURCE.getRepository(PredictionStat)
+                .createQueryBuilder("s")
+                .where("season = :season", { season })
+                .andWhere("source = :source", { source });
+            if (level != EpaStatLevelFilter.All) qb.andWhere("level = :level", { level });
+            let rows = await qb.orderBy("date", "ASC").getMany();
+
+            // Quals + Playoff rows land on the same date when level=All, so combine them there.
+            let byDate = new Map<string, StatBucket>();
+            for (let r of rows) {
+                let bucket = byDate.get(r.date) ?? emptyBucket();
+                addBucket(bucket, r);
+                byDate.set(r.date, bucket);
+            }
+            let dates = [...byDate.keys()].sort();
+
+            if (window == EpaStatWindow.Daily) {
+                return dates.map((date) => ({ date, ...metricsFor(byDate.get(date)!, source!) }));
+            }
+
+            if (window == EpaStatWindow.Cumulative) {
+                let running = emptyBucket();
+                return dates.map((date) => {
+                    addBucket(running, byDate.get(date)!);
+                    return { date, ...metricsFor(running, source!) };
+                });
+            }
+
+            // Trailing: sum every date within the last `windowDays` days (inclusive) of this one.
+            let dateMs = dates.map((d) => new Date(d).getTime());
+            const DAY_MS = 24 * 3600 * 1000;
+            return dates.map((date, i) => {
+                let cutoff = dateMs[i] - windowDays! * DAY_MS;
+                let acc = emptyBucket();
+                for (let j = i; j >= 0 && dateMs[j] > cutoff; j--) {
+                    addBucket(acc, byDate.get(dates[j])!);
+                }
+                return { date, ...metricsFor(acc, source!) };
+            });
         },
     },
     matchRecords: {

@@ -1,4 +1,4 @@
-import { StrTy, nullTy } from "@ftc-scout/common";
+import { FloatTy, StrTy, nullTy } from "@ftc-scout/common";
 import { GraphQLObjectType } from "graphql";
 
 export const LocationGQL = new GraphQLObjectType({
@@ -8,5 +8,7 @@ export const LocationGQL = new GraphQLObjectType({
         city: StrTy,
         state: StrTy,
         country: StrTy,
+        latitude: nullTy(FloatTy),
+        longitude: nullTy(FloatTy),
     },
 });

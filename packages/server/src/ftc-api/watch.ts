@@ -1,14 +1,19 @@
-import { CURRENT_SEASON, PAST_SEASONS } from "@ftc-scout/common";
+import { ALL_SEASONS, CURRENT_SEASON, PAST_SEASONS } from "@ftc-scout/common";
 import { DataHasBeenLoaded } from "../db/entities/DataHasBeenLoaded";
 import { loadAllTeams } from "../db/loaders/load-all-teams";
 import { loadAllEvents } from "../db/loaders/load-all-events";
 import { loadAllMatches } from "../db/loaders/load-all-matches";
 import { loadAllAwards } from "../db/loaders/load-all-awards";
 import { loadFutureEvents } from "../db/loaders/load-future-events";
+import { loadAllLeagues } from "../db/loaders/load-all-leagues";
+import { loadAdvancementSlots } from "../db/loaders/load-advancement-slots";
+import { computeAndSaveEpas, incrementallyUpdateEpas } from "../db/loaders/load-team-epas";
+import { loadAllAvatars } from "../db/loaders/load-all-avatars";
 
 export const LoadType = {
     Full: "Full",
     Partial: "Partial",
+    Future: "Future",
 };
 export type LoadType = (typeof LoadType)[keyof typeof LoadType];
 
@@ -30,11 +35,31 @@ export async function fetchPriorSeasons() {
         } else {
             console.info(`Matches already loaded.`);
         }
+        if (!(await DataHasBeenLoaded.epasHaveBeenComputed(season))) {
+            await computeAndSaveEpas(season);
+        } else {
+            console.info(`EPAs already computed.`);
+        }
+        if (!(await DataHasBeenLoaded.slotsHaveBeenLoaded(season))) {
+            await loadAdvancementSlots(season, LoadType.Full);
+        } else {
+            console.info(`Advancement slots already loaded.`);
+        }
         if (!(await DataHasBeenLoaded.awardsHaveBeenLoaded(season))) {
             await loadAllAwards(season, LoadType.Full);
         } else {
             console.info(`Awards already loaded.`);
         }
+        if (!(await DataHasBeenLoaded.leaguesHaveBeenLoaded(season))) {
+            await loadAllLeagues(season, { recomputeRankings: true });
+        } else {
+            console.info(`Leagues already loaded.`);
+        }
+    }
+
+    // So cheap we dont need a flag imo
+    for (let season of ALL_SEASONS) {
+        await loadAllAvatars(season);
     }
 }
 
@@ -60,15 +85,38 @@ export async function watchApi() {
         console.info(`Syncing. (Cycle ${cycleCount})`);
         await runJob(async () => await loadAllTeams(CURRENT_SEASON), MINS_PER_DAY);
         await runJob(async () => await loadAllEvents(CURRENT_SEASON), MINS_PER_HOUR);
+        await runJob(
+            async () => await loadAdvancementSlots(CURRENT_SEASON, LoadType.Full),
+            MINS_PER_HOUR
+        );
+        await runJob(async () => await loadAdvancementSlots(CURRENT_SEASON, LoadType.Partial), 5);
+        await runJob(async () => {
+            await loadAllMatches(CURRENT_SEASON, LoadType.Full);
+            // Runs right after the Full match load so it catches late-published/corrected
+            // matches that load just picked up - incrementallyUpdateEpas' watermark only moves
+            // forward and would otherwise never see them.
+            await computeAndSaveEpas(CURRENT_SEASON);
+        }, MINS_PER_DAY);
         await runJob(async () => await loadAllMatches(CURRENT_SEASON, LoadType.Partial), 1);
-        await runJob(async () => await loadAllMatches(CURRENT_SEASON, LoadType.Full), MINS_PER_DAY);
-        await runJob(async () => await loadAllAwards(CURRENT_SEASON, LoadType.Partial), 5);
+        // Cheap (only new matches since last cycle), so it can run every minute instead of the
+        // old 15-minute batch-replay cadence.
+        await runJob(async () => await incrementallyUpdateEpas(CURRENT_SEASON), 1);
+        await runJob(
+            async () => await loadAllLeagues(CURRENT_SEASON, { recomputeRankings: true }),
+            MINS_PER_DAY
+        );
         await runJob(async () => await loadAllAwards(CURRENT_SEASON, LoadType.Full), MINS_PER_HOUR);
+        await runJob(async () => await loadAllAwards(CURRENT_SEASON, LoadType.Partial), 5);
         await runJob(async () => await loadFutureEvents(CURRENT_SEASON), MINS_PER_DAY / 2);
+        await runJob(
+            async () => await loadAdvancementSlots(CURRENT_SEASON, LoadType.Future),
+            MINS_PER_HOUR * 6
+        );
+        await runJob(async () => await loadAllAvatars(CURRENT_SEASON), MINS_PER_HOUR * 12);
 
         cycleCount += 1;
         setTimeout(run, MS_PER_MIN);
     };
 
-    run();
+    await run();
 }

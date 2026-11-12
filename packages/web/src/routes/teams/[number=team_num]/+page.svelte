@@ -38,6 +38,8 @@
     import { setContext } from "svelte";
     import { SHOW_REMOTE_FOCUS_CTX } from "$lib/components/matches/MatchTeam.svelte";
     import QuickStats from "./QuickStats.svelte";
+    import EpaSection from "./EpaSection.svelte";
+    import { trackTeamView } from "../../analytics";
 
     const toSeason = (n: number) => n as Season;
 
@@ -57,7 +59,17 @@
         killHash: true,
     });
 
+    // Find avatar this season, otherwise use oldest available avatar
+    $: seasonAvatar =
+        (team?.avatarHistory ?? []).find((a) => a.season <= $season) ??
+        team?.avatarHistory.at(-1) ??
+        null;
+
     setContext(SHOW_REMOTE_FOCUS_CTX, false);
+
+    $: if (team) {
+        trackTeamView(team.number, $season.toString());
+    }
 </script>
 
 <Head
@@ -76,7 +88,12 @@
         </ErrorPage>
 
         <Card>
-            <h1>{team.number} - {team.name}</h1>
+            <div class="title-row">
+                {#if seasonAvatar}
+                    <img src={seasonAvatar.url} alt="" class="avatar" />
+                {/if}
+                <h1>{team.number} - {team.name}</h1>
+            </div>
 
             <InfoIconRow icon={faSchool}>{team.schoolName}</InfoIconRow>
 
@@ -109,6 +126,15 @@
 
         {#if team.quickStats}
             <QuickStats stats={team.quickStats} season={$season} />
+        {/if}
+
+        {#if team.epa}
+            <EpaSection
+                epa={team.epa}
+                history={team.epaHistory ?? []}
+                epaGroup={team.epaGroup}
+                epaGroupHistory={team.epaGroupHistory}
+            />
         {/if}
 
         {#each sortedEvents as tep}
@@ -145,6 +171,7 @@
 
                 <MatchTable
                     matches={tep.matches.map((m) => m.match)}
+                    overrideTeamCount={event.teams.length}
                     {event}
                     focusedTeam={team.number}
                 />
@@ -181,5 +208,28 @@
         align-items: center;
         gap: var(--md-gap);
         text-align: center;
+    }
+
+    .avatar {
+        object-fit: contain;
+        image-rendering: pixelated;
+        border-radius: 4px;
+        flex-shrink: 0;
+    }
+
+    .title-row {
+        display: flex;
+        align-items: center;
+        gap: var(--lg-gap);
+        margin-bottom: var(--lg-gap);
+    }
+
+    .title-row .avatar {
+        width: 40px;
+        height: 40px;
+    }
+
+    .title-row h1 {
+        margin: 0;
     }
 </style>

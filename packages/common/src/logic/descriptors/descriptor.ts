@@ -151,6 +151,17 @@ export class Descriptor {
         return this.columns.map((c) => c.tep).filter(notEmpty);
     }
 
+    private static readonly EPA_PHASE_DB_NAMES = [
+        "autoPoints",
+        "dcPoints",
+        "egPoints",
+        "totalPoints",
+        "totalPointsNp",
+    ];
+    epaColumns(): TepComponent[] {
+        return this.tepColumns().filter((c) => Descriptor.EPA_PHASE_DB_NAMES.includes(c.dbName));
+    }
+
     typeSuffix(remote: boolean): "Trad" | "Remote" | "" {
         return remote ? "Remote" : this.hasRemote ? "Trad" : "";
     }
@@ -285,17 +296,26 @@ export class TepComponent {
             sqlExpr: `${group}${titleCase(this.dbName)}`,
             ty: TEP_GROUP_DATA_TYS[group],
             getNonRankValue: this.tradOnly
-                ? (d: any) =>
-                      this.apiName in d.stats[group]
-                          ? {
-                                ty: TEP_GROUP_DATA_TYS[group],
-                                val: d.stats[group][this.apiName],
-                            }
-                          : null
-                : (d: any) => ({
-                      ty: TEP_GROUP_DATA_TYS[group],
-                      val: d.stats[group][this.apiName],
-                  }),
+                ? (d: any) => {
+                      const groupStats = d.stats?.[group];
+                      if (!groupStats || !(this.apiName in groupStats)) return null;
+                      const val = groupStats[this.apiName];
+                      if (val == null) return null;
+                      return {
+                          ty: TEP_GROUP_DATA_TYS[group],
+                          val,
+                      };
+                  }
+                : (d: any) => {
+                      const groupStats = d.stats?.[group];
+                      if (!groupStats) return null;
+                      const val = groupStats[this.apiName];
+                      if (val == null) return null;
+                      return {
+                          ty: TEP_GROUP_DATA_TYS[group],
+                          val,
+                      };
+                  },
         });
     }
 }

@@ -5,6 +5,7 @@
     import OfflineNotice from "$lib/components/nav/OfflineNotice.svelte";
     import { afterNavigate } from "$app/navigation";
     import { sendAnalyticsRequest } from "./analytics";
+    import ChangelogNotice from "$lib/components/nav/ChangelogNotice.svelte";
 
     if (browser) {
         // Svelte uses window.scrollTo to emulate the scroll resetting when navigation. However we
@@ -38,11 +39,36 @@
 
 <!-- Autofocus allows the document to be scrolled immediately without having to click. -->
 <!-- svelte-ignore a11y-autofocus -->
-<div id="content" tabindex="-1" autofocus>
-    <slot />
+<div class="app">
+    <div id="concontent">
+        <div class="beta-warning">
+            <p>
+                This is an <strong>unofficial</strong> beta release of
+                <a href="https://ftcscout.org" target="_blank" rel="noopener noreferrer"
+                    >FTC Scout</a
+                >
+                . Report advancement/leagues bugs on
+                <a
+                    href="https://github.com/mmathijs/ftc-scout"
+                    target="_blank"
+                    rel="noopener noreferrer">GitHub</a
+                >
+                or
+                <a
+                    href="https://discordapp.com/users/595972406745628703"
+                    target="_blank"
+                    rel="noopener noreferrer">Discord</a
+                >.
+            </p>
+        </div>
+        <div id="content" tabindex="-1" autofocus>
+            <slot />
+        </div>
+    </div>
 </div>
 
 <OfflineNotice />
+<ChangelogNotice />
 
 <style>
     @import "/static/css/global.css";
@@ -51,12 +77,18 @@
     #content {
         position: relative;
 
-        margin-top: var(--navbar-size);
+        /*margin-top: var(--navbar-size);*/
         margin-left: var(--sidebar-size);
         padding: var(--md-pad);
         padding-bottom: 80px;
 
         overflow: auto;
+    }
+
+    #concontent {
+        display: flex;
+        flex-direction: column;
+
         max-height: calc(100vh - var(--navbar-size));
         scrollbar-gutter: stable both-edges;
 
@@ -91,5 +123,24 @@
         overflow: hidden;
 
         background: var(--bg-color);
+    }
+
+    .beta-warning {
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 0;
+
+        background: var(--alert-bar-color);
+        color: var(--alert-bar-text-color);
+        text-align: center;
+        padding: var(--md-pad) var(--lg-pad);
+        font-size: var(--lg-font-size);
+    }
+
+    .app {
+        position: relative;
+
+        margin-top: var(--navbar-size);
     }
 </style>

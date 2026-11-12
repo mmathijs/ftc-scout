@@ -30,7 +30,10 @@
             <div class="scroll-wrapper" tabindex="-1" use:quickFocus>
                 <slot />
             </div>
-            <button class="close" on:click={_close}> {closeText} </button>
+            <div class="footer">
+                <slot name="actions" />
+                <button class="close" on:click={_close}> {closeText} </button>
+            </div>
         </div>
     </div>
 {/if}
@@ -99,13 +102,23 @@
         outline: none;
     }
 
+    .footer {
+        display: flex;
+
+        border-radius: 0 0 8px 8px;
+        overflow: hidden;
+    }
+
+    .footer :global(> *) {
+        flex: 1;
+    }
+
     .close {
         background: var(--theme-color);
         color: var(--theme-text-color);
         font-weight: bold;
 
         border: none;
-        border-radius: 0 0 8px 8px;
 
         padding: var(--lg-pad);
 

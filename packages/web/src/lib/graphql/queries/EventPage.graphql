@@ -10,6 +10,7 @@ query EventPage($season: Int!, $code: String!) {
         }
         type
         ongoing
+        hasPitMap
         matches {
             ...FullMatch
         }
@@ -20,10 +21,14 @@ query EventPage($season: Int!, $code: String!) {
             team {
                 number
                 name
+                avatar
                 location {
                     city
                     state
                     country
+                }
+                epa(season: $season) {
+                    epa
                 }
             }
             stats {
@@ -55,12 +60,76 @@ query EventPage($season: Int!, $code: String!) {
             team {
                 number
                 name
+                avatar
             }
         }
         relatedEvents {
             season
             code
             name
+        }
+        leagueRankings {
+            league {
+                season
+                code
+                name
+                remote
+                regionCode
+                parentLeagueCode
+                parentLeagueName
+                location
+            }
+            teams {
+                season
+                leagueCode
+                regionCode
+                teamNumber
+                avgRp
+                team {
+                    number
+                    name
+                    avatar
+                    location {
+                        city
+                        state
+                        country
+                    }
+                }
+                stats {
+                    ...FullStats
+                }
+            }
+        }
+        advancement {
+            season
+            eventCode
+            teamNumber
+            team {
+                number
+                name
+            }
+            qualPoints
+            isQualFinal
+            allianceSelectionPoints
+            isAllianceSelectionFinal
+            playoffPoints
+            isPlayoffPointsFinal
+            awardPoints
+            totalPoints
+            rank
+            advancementRank
+            advanced
+            eligibility
+        }
+        advancementInfo {
+            advancementSlots
+            advancesTo
+            advancesToEvent {
+                season
+                code
+                name
+            }
+            fcmpReserved
         }
     }
 }

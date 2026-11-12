@@ -10,7 +10,7 @@
     type Team = Omit<NonNullable<EventPageQuery["eventByCode"]>["teams"][number], "__typename">;
 
     export let team: Pick<Team, "stats" | "season"> & { eventCode?: string | undefined } & {
-        team: { name: string; number: number };
+        team: { name: string; number: number; avatar?: string | null };
     };
     export let remote: boolean;
 
@@ -18,6 +18,7 @@
     $: code = team.eventCode;
     $: number = team.team.number;
     $: name = team.team.name;
+    $: avatar = team.team.avatar ?? null;
 
     $: seasonPart = season == CURRENT_SEASON ? "" : `?season=${season}`;
     $: codePart = code ? "#" + code : "";
@@ -31,28 +32,38 @@
 </script>
 
 <a {href} transition:fly={{ y: 100, duration: 300 }}>
-    <div class="top-row">
-        <b class="name"> {number} - <em> {name} </em> </b>
-        <span class="view-team"> View Team <Fa icon={faAngleRight} /></span>
-    </div>
-
-    {#if stats}
-        <div class="stats">
-            <b>{prettyPrintOrdinal(stats.rank)}</b> place ·
-            {#if "wins" in stats}
-                <b>{stats.wins}-{stats.losses}-{stats.ties}</b> W-L-T ·
-            {/if}
-            <b>{prettyPrintFloat(stats.opr[npStat])}</b>
-            {np}OPR ·
-            <b>{prettyPrintFloat(stats.avg[npStat])}</b>
-            {np}AVG
+    {#if avatar}
+        <div class="avatar-container">
+            <img src={avatar} alt="" class="avatar" width="40" height="40" loading="lazy" />
         </div>
     {/if}
+    <div class="content">
+        <div class="top-row">
+            <b class="name"> {number} - <em> {name} </em> </b>
+            <span class="view-team"> View Team <Fa icon={faAngleRight} /></span>
+        </div>
+
+        {#if stats}
+            <div class="stats">
+                <b>{prettyPrintOrdinal(stats.rank)}</b> place ·
+                {#if "wins" in stats}
+                    <b>{stats.wins}-{stats.losses}-{stats.ties}</b> W-L-T ·
+                {/if}
+                <b>{prettyPrintFloat(stats.opr[npStat])}</b>
+                {np}OPR ·
+                <b>{prettyPrintFloat(stats.avg[npStat])}</b>
+                {np}AVG
+            </div>
+        {/if}
+    </div>
 </a>
 
 <style>
     a {
-        display: block;
+        display: flex;
+        align-items: stretch;
+        gap: var(--lg-pad);
+
         text-decoration: none;
 
         position: fixed;
@@ -77,6 +88,26 @@
         z-index: var(--focused-team-zi);
 
         outline-color: var(--inverse-text-color);
+    }
+
+    .avatar {
+        flex-shrink: 0;
+
+        width: 40px;
+        height: 40px;
+        object-fit: contain;
+        border-radius: 4px;
+    }
+
+    .avatar-container {
+        display: flex;
+        justify-content: center; /* Centers horizontally */
+        align-items: center;
+    }
+
+    .content {
+        min-width: 0;
+        flex: 1 1 auto;
     }
 
     @media (max-width: 1500px) {

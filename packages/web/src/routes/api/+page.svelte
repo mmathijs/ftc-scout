@@ -26,6 +26,11 @@
                 >.
             </p>
 
+            <p>
+                Notable API changes will be posted in <a href="/changelog">changelog</a>, and on the
+                <a href="/changelog.xml">RSS feed</a>.
+            </p>
+
             <h2>GraphQL</h2>
             <p>
                 The FTC<em>Scout</em> GraphQL API provides access to all of the FTC<em>Scout</em>'s

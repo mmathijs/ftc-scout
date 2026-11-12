@@ -11,6 +11,7 @@
             "tournamentLevel": "Semis",
             "scheduledStartTime": null,
             "actualStartTime": "2023-02-04T23:35:56.881Z",
+            "videos": [],
             "scores": {
                 "__typename": "MatchScores2022",
                 "season": 2022,

@@ -2,6 +2,7 @@ import type { ApolloServerPlugin, GraphQLRequestContext } from "@apollo/server";
 import type { KeyValueCache } from "@apollo/utils.keyvaluecache";
 import { HeaderMap } from "@apollo/server";
 import crypto from "crypto";
+import { QueryAnalytics } from "../../db/entities/QueryAnalytics";
 
 interface CacheControlHint {
     maxAge?: number;
@@ -17,6 +18,8 @@ const CACHE_CONFIG: Record<string, CacheControlHint> = {
     eventssearch: { maxAge: 300, scope: "PUBLIC" },
     activeteamscount: { maxAge: 600, scope: "PUBLIC" }, // 10 minutes
     teamsregionsearch: { maxAge: 300, scope: "PUBLIC" },
+    combinedsearch: { maxAge: 300, scope: "PUBLIC" },
+    teamssearch: { maxAge: 300, scope: "PUBLIC" },
 };
 
 function generateCacheKey(
@@ -89,6 +92,10 @@ export function responseCachePlugin(cache: KeyValueCache): ApolloServerPlugin {
                         headers.set("cache-control", `public, max-age=${ttl}`);
                         headers.set("x-cache", "HIT");
 
+                        QueryAnalytics.save({ queryName: operationName!, cached: true }).catch(
+                            (e) => console.error("Failed to save QueryAnalytics:", e)
+                        );
+
                         return {
                             body: {
                                 kind: "single" as const,
@@ -103,7 +110,17 @@ export function responseCachePlugin(cache: KeyValueCache): ApolloServerPlugin {
                 },
 
                 async willSendResponse(requestContext: GraphQLRequestContext<any>) {
-                    if (!shouldCache || !cacheKey || !operationName || cachedResponse) {
+                    if (cachedResponse) {
+                        return;
+                    }
+
+                    if (operationName && operationName != "IntrospectionQuery") {
+                        QueryAnalytics.save({ queryName: operationName, cached: false }).catch(
+                            (e) => console.error("Failed to save QueryAnalytics:", e)
+                        );
+                    }
+
+                    if (!shouldCache || !cacheKey) {
                         return;
                     }
 

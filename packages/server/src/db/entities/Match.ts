@@ -13,6 +13,7 @@ import {
     DeepPartial,
     Entity,
     ManyToOne,
+    OneToMany,
     PrimaryColumn,
     UpdateDateColumn,
 } from "typeorm";
@@ -20,6 +21,7 @@ import { Event } from "./Event";
 import { DateTime } from "luxon";
 import { MatchScore } from "./dyn/match-score";
 import { TeamMatchParticipation } from "./TeamMatchParticipation";
+import { Video } from "./Video";
 import { frontendMSFromDB } from "../../graphql/dyn/match-score";
 
 @Entity()
@@ -38,7 +40,10 @@ export class Match extends BaseEntity {
 
     scores!: MatchScore[];
 
+    @OneToMany(() => TeamMatchParticipation, (p) => p.match)
     teams!: TeamMatchParticipation[];
+
+    videos!: Video[];
 
     @Column()
     hasBeenPlayed!: boolean;
@@ -72,6 +77,8 @@ export class Match extends BaseEntity {
                 return `F-${this.matchNum}`;
             case TournamentLevel.DoubleElim:
                 return this.matchNum > 1 ? `M-${this.series}.${this.matchNum}` : `M-${this.series}`;
+            case TournamentLevel.RoundRobin:
+                return `RR-${this.series}`;
         }
     }
 
@@ -124,6 +131,39 @@ export class Match extends BaseEntity {
     }
 }
 
+function allianceKey(teams: MatchFtcApi["teams"]): string {
+    let red = teams
+        .filter((t) => t.station.startsWith("Red"))
+        .map((t) => t.teamNumber)
+        .sort((a, b) => a - b)
+        .join(",");
+    let blue = teams
+        .filter((t) => t.station.startsWith("Blue"))
+        .map((t) => t.teamNumber)
+        .sort((a, b) => a - b)
+        .join(",");
+    return [red, blue].sort().join("|");
+}
+
+// True if every alliance plays every other alliance exactly once - a pair may meet twice if
+// their first match was a draw, since draws get replayed.
+function isRoundRobin(nonFinalPlayoffMatches: MatchFtcApi[], allianceCount: number): boolean {
+    let byPairing = new Map<string, MatchFtcApi[]>();
+    for (let m of nonFinalPlayoffMatches) {
+        let key = allianceKey(m.teams);
+        (byPairing.get(key) ?? byPairing.set(key, []).get(key)!).push(m);
+    }
+
+    if (byPairing.size !== (allianceCount * (allianceCount - 1)) / 2) return false;
+
+    return [...byPairing.values()].every((matches) => {
+        let replays = [...matches].sort((a, b) => a.series - b.series).slice(0, -1);
+        return replays.every(
+            (m) => m.scoreRedFinal != null && m.scoreRedFinal === m.scoreBlueFinal
+        );
+    });
+}
+
 function computeMatchOrder(
     level: TournamentLevel,
     api: MatchFtcApi,
@@ -138,10 +178,10 @@ function computeMatchOrder(
         return [level, api.series, api.matchNumber];
     }
 
+    let allPlayoffMatches = allMatches.filter((m) => m.tournamentLevel == "PLAYOFF");
+
     // Now we have to handle double elim matches
-    let uniquePlayoffTeams = allMatches
-        .filter((m) => m.tournamentLevel == "PLAYOFF")
-        .flatMap((m) => m.teams.map((t) => t.teamNumber));
+    let uniquePlayoffTeams = allPlayoffMatches.flatMap((m) => m.teams.map((t) => t.teamNumber));
     uniquePlayoffTeams = [...new Set(uniquePlayoffTeams)];
 
     if (uniquePlayoffTeams.length <= 4) {
@@ -149,6 +189,37 @@ function computeMatchOrder(
         // is really more of a best of three. Let's call it a finals
         level = TournamentLevel.Finals;
         return [level, 0, api.matchNumber];
+    }
+
+    let nonFinalPlayoffMatches = allPlayoffMatches.filter(
+        (match) => !match.description.toLowerCase().includes("finals")
+    );
+    let totalSeries =
+        nonFinalPlayoffMatches.length > 0
+            ? nonFinalPlayoffMatches.reduce((prev: MatchFtcApi, curr: MatchFtcApi) =>
+                  prev.series > curr.series ? prev : curr
+              ).series
+            : 0;
+
+    let teamsPerAlliance = allPlayoffMatches.some((match) =>
+        match.teams.some((team) => team.station === "Red3" || team.station === "Blue3")
+    )
+        ? 3
+        : 2;
+    let allianceCount = uniquePlayoffTeams.length / teamsPerAlliance;
+
+    if (allianceCount % 1 != 0) {
+        console.error(`AllianceCount is not an integer for event: ${event.code}`);
+    }
+
+    if (isRoundRobin(nonFinalPlayoffMatches, allianceCount)) {
+        if (api.series > totalSeries) {
+            level = TournamentLevel.Finals;
+            return [level, api.series, api.matchNumber];
+        }
+
+        level = TournamentLevel.RoundRobin;
+        return [level, api.series, api.matchNumber];
     }
 
     return [level, api.series, api.matchNumber];

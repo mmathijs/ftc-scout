@@ -10,6 +10,13 @@ fragment FullStats on TeamEventStats {
         ties
         dqs
         qualMatchesPlayed
+        epa
+        epaGroup {
+            auto
+            dc
+            total
+            np
+        }
         tot {
             ...FullTeamEventStats2026Group
         }
@@ -39,6 +46,13 @@ fragment FullStats on TeamEventStats {
         ties
         dqs
         qualMatchesPlayed
+        epa
+        epaGroup {
+            auto
+            dc
+            total
+            np
+        }
         tot {
             ...FullTeamEventStats2025Group
         }
@@ -68,6 +82,13 @@ fragment FullStats on TeamEventStats {
         ties
         dqs
         qualMatchesPlayed
+        epa
+        epaGroup {
+            auto
+            dc
+            total
+            np
+        }
         tot {
             ...FullTeamEventStats2024Group
         }
@@ -97,6 +118,14 @@ fragment FullStats on TeamEventStats {
         ties
         dqs
         qualMatchesPlayed
+        epa
+        epaGroup {
+            auto
+            dc
+            eg
+            total
+            np
+        }
         tot {
             ...FullTeamEventStats2023Group
         }
@@ -126,6 +155,14 @@ fragment FullStats on TeamEventStats {
         ties
         dqs
         qualMatchesPlayed
+        epa
+        epaGroup {
+            auto
+            dc
+            eg
+            total
+            np
+        }
         tot {
             ...FullTeamEventStats2022Group
         }
@@ -155,6 +192,14 @@ fragment FullStats on TeamEventStats {
         ties
         dqs
         qualMatchesPlayed
+        epa
+        epaGroup {
+            auto
+            dc
+            eg
+            total
+            np
+        }
         tot {
             ...FullTeamEventStats2021TradGroup
         }
@@ -180,6 +225,14 @@ fragment FullStats on TeamEventStats {
         tb1
         tb2
         qualMatchesPlayed
+        epa
+        epaGroup {
+            auto
+            dc
+            eg
+            total
+            np
+        }
         tot {
             ...FullTeamEventStats2021RemoteGroup
         }
@@ -209,6 +262,14 @@ fragment FullStats on TeamEventStats {
         ties
         dqs
         qualMatchesPlayed
+        epa
+        epaGroup {
+            auto
+            dc
+            eg
+            total
+            np
+        }
         tot {
             ...FullTeamEventStats2020TradGroup
         }
@@ -234,6 +295,14 @@ fragment FullStats on TeamEventStats {
         tb1
         tb2
         qualMatchesPlayed
+        epa
+        epaGroup {
+            auto
+            dc
+            eg
+            total
+            np
+        }
         tot {
             ...FullTeamEventStats2020RemoteGroup
         }
@@ -262,6 +331,14 @@ fragment FullStats on TeamEventStats {
         ties
         dqs
         qualMatchesPlayed
+        epa
+        epaGroup {
+            auto
+            dc
+            eg
+            total
+            np
+        }
         tot {
             ...FullTeamEventStats2019Group
         }

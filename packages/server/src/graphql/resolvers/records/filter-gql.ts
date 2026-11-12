@@ -143,7 +143,7 @@ function filterValToSQL(
             let sql = stats.getStat(val.var)?.sqlExpr ?? null;
             if (!sql) {
                 return "0";
-            } else if (sql.includes(".")) {
+            } else if (/^\w+\.\w+$/.test(sql)) {
                 let [s, e] = sql.split(".");
                 return s + "." + name(e);
             } else {

@@ -60,6 +60,7 @@
             <CheckCell
                 {selectedStats}
                 id={section.getId(row.val.id, column.id)}
+                exists={!!stats.getStat(section.getId(row.val.id, column.id))}
                 {column}
                 on:choose-stat
             />

@@ -1,0 +1,33 @@
+query PitMap($season: Int!, $code: String!) {
+    eventByCode(season: $season, code: $code) {
+        season
+        code
+        pitMap {
+            minX
+            minY
+            width
+            height
+            showPitNumbers
+            showPitAddresses
+            updatedAt
+            elements {
+                type
+                x
+                y
+                width
+                height
+                label
+                labelOrientation
+                index
+                address
+                addressGroup
+                color
+                team {
+                    number
+                    name
+                    displayNumber
+                }
+            }
+        }
+    }
+}

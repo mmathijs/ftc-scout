@@ -44,7 +44,11 @@
             <section>
                 <code class="route">/teams/<span class="var">:number</span></code>
                 <p>Get a team by their number.</p>
-                <p>Returns all scalar fields of the <code>Team</code> GraphQL type.</p>
+                <p>
+                    Returns all scalar fields of the <code>Team</code> GraphQL type, plus an
+                    <code>avatar</code> field with the team's current avatar, or <code>null</code> if
+                    they don't have one.
+                </p>
                 <p><code class="resp-code">404</code>s if the team does not exist.</p>
             </section>
 
@@ -108,6 +112,34 @@
                 <p>
                     <code class="resp-code">404</code>s if the team does not exist or has no events
                     in the specified season.
+                </p>
+            </section>
+
+            <section>
+                <code class="route">/teams/<span class="var">:number</span>/avatars</code>
+                <p>
+                    Get a team's full avatar history. A team can change their avatar, so this
+                    returns all avatars a team has used over time, from new to old. Newest is the
+                    same as the <code>avatar</code>
+                    field on the <code>/teams/:number</code> route.
+                </p>
+                <p>Returns all fields of the <code>TeamAvatar</code> GraphQL type.</p>
+                <p>
+                    Does <b>not</b> <code class="resp-code">404</code> if the team does not exist;
+                    instead returns <code>[]</code>.
+                </p>
+            </section>
+
+            <section>
+                <code class="route">
+                    /teams/<span class="var">:number</span>/leagues?season=<span class="var"
+                        >Int</span
+                    >
+                </code>
+                <p>Get all the leagues a team belongs to. Optionally filter by season.</p>
+                <p>Returns all scalar fields of the <code>LeagueTeam</code> GraphQL type.</p>
+                <p>
+                    Does <b>not</b> <code class="resp-code">404</code> if the team does not exist.
                 </p>
             </section>
 
@@ -177,6 +209,22 @@
 
             <section>
                 <code class="route">
+                    /events/<span class="var">:season</span>/<span class="var">:code</span
+                    >/advancement
+                </code>
+                <p>
+                    Get the advancement scores for all teams at the event, ordered by rank.
+                    Advancement scores determine which teams qualify to advance to the next level of
+                    competition.
+                </p>
+                <p>Returns all scalar fields of the <code>AdvancementScore</code> GraphQL type.</p>
+                <p>
+                    <code class="resp-code">404</code>s if the event does not exist.
+                </p>
+            </section>
+
+            <section>
+                <code class="route">
                     /events/<span class="var">:season</span>/<span class="var">:code</span>/preview
                 </code>
                 <p>Get the stats of each team from their best event.</p>
@@ -189,25 +237,63 @@
                 <p>
                     <b>Does</b> <code class="resp-code">404</code> if the event does not exist.
                 </p>
-                <section>
-                    <code class="route">
-                        /events/search/<span class="var">:season</span>?region=<span class="var"
-                            >RegionOption</span
-                        >&ZeroWidthSpace;&type=<span class="var">EventType</span
-                        >&ZeroWidthSpace;&hasMatches=<span class="var">Boolean</span
-                        >&ZeroWidthSpace;&start=<span class="var">Date</span
-                        >&ZeroWidthSpace;&end=<span class=":var">Date</span
-                        >&ZeroWidthSpace;&limit=<span class="var">Int</span
-                        >&ZeroWidthSpace;&searchText=<span class="var">String</span>
-                    </code>
-                    <p>
-                        Get a list of events. This is the correct query to get a list of all events.
-                    </p>
-                    <p>
-                        Returns all scalar fields of the <code>Event</code> GraphQL type except for
-                        <code>hasMatches</code>.
-                    </p>
-                </section>
+            </section>
+
+            <section>
+                <code class="route">
+                    /events/search/<span class="var">:season</span>?region=<span class="var"
+                        >RegionOption</span
+                    >&ZeroWidthSpace;&type=<span class="var">EventType</span
+                    >&ZeroWidthSpace;&hasMatches=<span class="var">Boolean</span
+                    >&ZeroWidthSpace;&start=<span class="var">Date</span>&ZeroWidthSpace;&end=<span
+                        class=":var">Date</span
+                    >&ZeroWidthSpace;&limit=<span class="var">Int</span
+                    >&ZeroWidthSpace;&searchText=<span class="var">String</span>
+                </code>
+                <p>Get a list of events. This is the correct query to get a list of all events.</p>
+                <p>
+                    Returns all scalar fields of the <code>Event</code> GraphQL type except for
+                    <code>hasMatches</code>.
+                </p>
+            </section>
+
+            <h2>Leagues</h2>
+
+            <section>
+                <code class="route">
+                    /leagues/<span class="var">:season</span>?regionCode=<span class="var"
+                        >String</span
+                    >&ZeroWidthSpace;&limit=<span class="var">Int</span
+                    >&ZeroWidthSpace;&searchText=<span class="var">String</span>
+                </code>
+                <p>
+                    Get a list of leagues for the given season. This is the correct query to get a
+                    list of all leagues.
+                </p>
+                <p>Returns all scalar fields of the <code>League</code> GraphQL type.</p>
+            </section>
+
+            <section>
+                <code class="route">
+                    /leagues/<span class="var">:season</span>/<span class="var">:regionCode</span
+                    >/<span class="var">:code</span>
+                </code>
+                <p>Get a league by its season, region code, and league code.</p>
+                <p>Returns all scalar fields of the <code>League</code> GraphQL type.</p>
+                <p><code class="resp-code">404</code>s if the league does not exist.</p>
+            </section>
+
+            <section>
+                <code class="route">
+                    /leagues/<span class="var">:season</span>/<span class="var">:regionCode</span
+                    >/<span class="var">:code</span>/teams
+                </code>
+                <p>Get all the team rankings for a league, ordered by rank.</p>
+                <p>
+                    Returns all scalar fields and the <code>stats</code> field of the
+                    <code>LeagueRankingEntry</code> GraphQL type.
+                </p>
+                <p><code class="resp-code">404</code>s if the league does not exist.</p>
             </section>
         </div>
     </Card>

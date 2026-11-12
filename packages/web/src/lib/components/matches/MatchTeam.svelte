@@ -18,6 +18,7 @@
 
     $: number = team.team.number;
     $: name = team.team.name;
+    $: avatar = team.team.avatar ?? null;
 
     $: surrogate = team.surrogate;
     $: dq = team.dq;
@@ -59,8 +60,15 @@
             }
         }}
     >
-        <span class:dq={dq || noShow}>{number}{surrogate ? "*" : ""}</span>
-        <em class="name">{name}</em>
+        <div class="text">
+            <span class="number">
+                <span class:dq={dq || noShow}>{number}{surrogate ? "*" : ""}</span>
+                {#if avatar}
+                    <img src={avatar} alt="" class="avatar" width="20" height="20" loading="lazy" />
+                {/if}
+            </span>
+            <em class="name">{name}</em>
+        </div>
     </a>
 </td>
 
@@ -68,6 +76,7 @@
     td {
         grid-column: span var(--span);
         display: block;
+        container-type: inline-size;
 
         height: 100%;
 
@@ -76,15 +85,14 @@
     }
 
     .inner {
+        position: relative;
+
         display: flex;
-        flex-direction: column;
+        flex-direction: row;
         align-items: flex-start;
+        gap: var(--sm-gap);
 
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-
-        padding: var(--sm-pad) var(--md-pad);
+        padding: var(--sm-pad) var(--sm-pad) var(--sm-pad) var(--md-pad);
 
         cursor: pointer;
 
@@ -94,6 +102,96 @@
         height: 100%;
     }
 
+    .text {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+
+        min-width: 0;
+        flex: 1 1 auto;
+        overflow: hidden;
+    }
+
+    .number {
+        display: flex;
+        align-items: center;
+        gap: var(--sm-gap);
+    }
+
+    .name {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .avatar {
+        display: block;
+        width: 20px;
+        height: 20px;
+        object-fit: contain;
+        border-radius: 2px;
+        flex-shrink: 0;
+    }
+
+    .avatar-large {
+        display: none;
+        position: absolute;
+        top: var(--sm-pad);
+        right: var(--sm-pad);
+        z-index: var(--hovered-row-zi);
+
+        width: 40px;
+        height: 40px;
+        object-fit: contain;
+        border-radius: 2px;
+
+        background: var(--fg-color);
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+        pointer-events: none;
+    }
+
+    .red .avatar-large {
+        background: var(--red-team-color);
+    }
+
+    .blue .avatar-large {
+        background: var(--blue-team-color);
+    }
+
+    .solo .avatar-large {
+        background: var(--neutral-team-color);
+    }
+
+    .inner:hover .avatar-large {
+        display: block;
+    }
+
+    .tooltip {
+        display: none;
+        position: absolute;
+        top: calc(100% + var(--sm-gap));
+        left: var(--sm-pad);
+        z-index: var(--hovered-row-zi);
+
+        max-width: 220px;
+        padding: var(--sm-pad) var(--sm-gap);
+        border-radius: 4px;
+
+        background: var(--inverse-bg-color);
+        color: var(--inverse-text-color);
+        font-size: var(--sm-font-size);
+        font-weight: normal;
+        text-align: left;
+        white-space: normal;
+
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+        pointer-events: none;
+    }
+
+    .inner:hover .tooltip {
+        display: block;
+    }
+
     :global(.hearts) + td .inner {
         padding-left: var(--sm-gap);
     }
@@ -101,6 +199,7 @@
     .red {
         background: var(--red-team-bg-color);
     }
+
     .blue {
         background: var(--blue-team-bg-color);
     }
@@ -108,12 +207,15 @@
     td:hover {
         z-index: 1;
     }
+
     .red:hover {
         outline: 2px solid var(--red-team-color);
     }
+
     .blue:hover {
         outline: 2px solid var(--blue-team-color);
     }
+
     .solo:hover {
         outline: 2px solid var(--neutral-team-color);
     }
@@ -122,10 +224,12 @@
         background: var(--red-team-color);
         color: var(--team-text-color);
     }
+
     .focused.blue {
         background: var(--blue-team-color);
         color: var(--team-text-color);
     }
+
     .focused.solo {
         background: var(--neutral-team-color);
         color: var(--team-text-color);
@@ -138,18 +242,35 @@
     .not-on-field {
         color: var(--grayed-out-text-color);
     }
+
     .dq {
         text-decoration: line-through;
     }
 
+    @container (max-width: 84px) {
+        .avatar,
+        .avatar-large {
+            display: none;
+        }
+    }
+
+    /* Not enough space once the name is hidden, and it'd bloat row height. */
     @media (max-width: 1000px) {
         .name {
+            display: none;
+        }
+
+        .avatar {
             display: none;
         }
 
         .inner {
             align-items: center;
             justify-content: center;
+        }
+
+        .text {
+            flex: 0 1 auto;
         }
     }
 </style>

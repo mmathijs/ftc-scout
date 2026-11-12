@@ -23,7 +23,7 @@ export type StatValue =
     | { ty: "float"; val: number }
     | { ty: "rank"; val: number }
     | { ty: "string"; val: string }
-    | { ty: "team"; number: number; name: string }
+    | { ty: "team"; number: number; name: string; avatar?: string | null }
     | { ty: "event"; season: number; code: string; name: string; start: string; end: string }
     | { ty: "record"; wins: number; losses: number; ties: number };
 

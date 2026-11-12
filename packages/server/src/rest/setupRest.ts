@@ -13,6 +13,7 @@ import {
     DESCRIPTORS,
 } from "@ftc-scout/common";
 import { Award } from "../db/entities/Award";
+import { avatarHistoryLoader } from "../graphql/resolvers/TeamAvatar";
 import { TeamMatchParticipation } from "../db/entities/TeamMatchParticipation";
 import { Event } from "../db/entities/Event";
 import { DateTime } from "luxon";
@@ -21,9 +22,23 @@ import { DATA_SOURCE } from "../db/data-source";
 import { frontendMSFromDB } from "../graphql/dyn/match-score";
 import { FindOptionsWhere, In } from "typeorm";
 import { getQuickStats } from "../graphql/resolvers/Team";
+import { League } from "../db/entities/League";
+import { LeagueTeam } from "../db/entities/LeagueTeam";
+import { LeagueRanking, firstSeasonLeagueRankings } from "../db/entities/dyn/league-ranking";
 import { addTypename } from "../graphql/dyn/tep";
+import { AdvancementScore } from "../db/entities/AdvancementScore";
+import { asyncHandler } from "./async-handler";
 
 const pre = "/rest/v1/";
+
+// One-off testing knob: when set, teamEvents (a team's OWN event history for the season) hides
+// any event that started after this cutoff - so a third-party tool hitting this REST API against
+// this cutoff sees exactly what would have been knowable at that point in time, not the full
+// season with hindsight. Only teamEvents is filtered (not eventTeams/eventMatches for the target
+// event itself, which are supposed to show that whole event). No effect unless the env var is set.
+const AUTOSCOUT_CUTOFF_DATE = process.env.AUTOSCOUT_CUTOFF_DATE
+    ? new Date(process.env.AUTOSCOUT_CUTOFF_DATE)
+    : null;
 
 function isSeason(season: number): season is Season {
     return (ALL_SEASONS as readonly number[]).indexOf(season) != -1;
@@ -46,19 +61,27 @@ function isDate(date: string): boolean {
 }
 
 export function setupRest(app: Express) {
-    app.get(pre + "teams/:number(\\d+)", teamByNumber);
-    app.get(pre + "teams/:number(\\d+)/events/:season(\\d+)", teamEvents);
-    app.get(pre + "teams/:number(\\d+)/awards", teamAwards);
-    app.get(pre + "teams/:number(\\d+)/matches", teamMatches);
-    app.get(pre + "teams/:number(\\d+)/quick-stats", teamQuickStats);
-    app.get(pre + "teams/search", teamSearch);
+    app.get(pre + "teams/:number(\\d+)", asyncHandler(teamByNumber));
+    app.get(pre + "teams/:number(\\d+)/events/:season(\\d+)", asyncHandler(teamEvents));
+    app.get(pre + "teams/:number(\\d+)/awards", asyncHandler(teamAwards));
+    app.get(pre + "teams/:number(\\d+)/matches", asyncHandler(teamMatches));
+    app.get(pre + "teams/:number(\\d+)/quick-stats", asyncHandler(teamQuickStats));
+    app.get(pre + "teams/:number(\\d+)/avatars", asyncHandler(teamAvatars));
+    app.get(pre + "teams/search", asyncHandler(teamSearch));
 
-    app.get(pre + "events/:season(\\d+)/:code", eventByCode);
-    app.get(pre + "events/:season(\\d+)/:code/matches", eventMatches);
-    app.get(pre + "events/:season(\\d+)/:code/awards", eventAwards);
-    app.get(pre + "events/:season(\\d+)/:code/teams", eventTeams);
-    app.get(pre + "events/:season(\\d+)/:code/preview", eventPreview);
-    app.get(pre + "events/search/:season(\\d+)", eventSearch);
+    app.get(pre + "events/:season(\\d+)/:code", asyncHandler(eventByCode));
+    app.get(pre + "events/:season(\\d+)/:code/matches", asyncHandler(eventMatches));
+    app.get(pre + "events/:season(\\d+)/:code/awards", asyncHandler(eventAwards));
+    app.get(pre + "events/:season(\\d+)/:code/teams", asyncHandler(eventTeams));
+    app.get(pre + "events/:season(\\d+)/:code/advancement", asyncHandler(eventAdvancement));
+    app.get(pre + "events/:season(\\d+)/:code/preview", asyncHandler(eventPreview));
+    app.get(pre + "events/search/:season(\\d+)", asyncHandler(eventSearch));
+
+    app.get(pre + "leagues/:season(\\d+)", asyncHandler(leagueSearch));
+    app.get(pre + "leagues/:season(\\d+)/:regionCode/:code", asyncHandler(leagueByCode));
+    app.get(pre + "leagues/:season(\\d+)/:regionCode/:code/teams", asyncHandler(leagueTeams));
+
+    app.get(pre + "teams/:number(\\d+)/leagues", asyncHandler(teamLeagues));
 }
 
 async function teamByNumber(req: Request<{ number: string }>, res: Response) {
@@ -70,7 +93,14 @@ async function teamByNumber(req: Request<{ number: string }>, res: Response) {
         return;
     }
 
-    res.send(team);
+    let { avatarUrl, ...rest } = team;
+    res.send({ ...rest, avatar: avatarUrl ?? null });
+}
+
+async function teamAvatars(req: Request<{ number: string }>, res: Response) {
+    let teamNumber = +req.params.number;
+
+    res.send(await avatarHistoryLoader([teamNumber]));
 }
 
 async function getTeps(
@@ -132,7 +162,21 @@ async function teamEvents(req: Request<{ number: string; season: string }>, res:
         return;
     }
 
-    res.send(await getTeps(season, { teamNumber }));
+    let teps = await getTeps(season, { teamNumber });
+
+    if (AUTOSCOUT_CUTOFF_DATE) {
+        let events = await Event.findBy({
+            season,
+            code: In(teps.map((t: any) => t.eventCode)),
+        });
+        let startByCode = new Map(events.map((e) => [e.code, e.start]));
+        teps = teps.filter((t: any) => {
+            let start = startByCode.get(t.eventCode);
+            return start != null && new Date(start as any) <= AUTOSCOUT_CUTOFF_DATE!;
+        });
+    }
+
+    res.send(teps);
 }
 
 async function teamAwards(req: Request<{ number: string }>, res: Response) {
@@ -246,7 +290,12 @@ async function teamSearch(req: Request, res: Response) {
         }
     }
 
-    res.send(entities);
+    res.send(
+        entities.map((e) => {
+            let { avatarUrl, ...rest } = e;
+            return { ...rest, avatar: avatarUrl ?? null };
+        })
+    );
 }
 
 async function eventByCode(req: Request<{ season: string; code: string }>, res: Response) {
@@ -441,6 +490,183 @@ async function eventSearch(req: Request<{ season: string }>, res: Response) {
     }
 
     res.send(entities);
+}
+
+async function teamLeagues(req: Request<{ number: string }>, res: Response) {
+    let teamNumber = +req.params.number;
+    let season = req.query.season as string | undefined;
+
+    if (season && !isSeason(+season)) {
+        res.status(400).send(`Invalid season ${season}.`);
+        return;
+    }
+
+    let memberships = await LeagueTeam.findBy({
+        teamNumber,
+        ...(season ? { season: +season as Season } : {}),
+    });
+
+    res.send(memberships);
+}
+
+async function leagueSearch(req: Request<{ season: string }>, res: Response) {
+    let season = +req.params.season;
+
+    if (!isSeason(season)) {
+        res.status(400).send(`Invalid season ${season}.`);
+        return;
+    }
+
+    let regionCode = req.query.regionCode as string | undefined;
+    let limit = req.query.limit as string | undefined;
+    let searchText = req.query.searchText as string | undefined;
+
+    if (limit && !isNumber(limit)) {
+        res.status(400).send(`Invalid limit ${limit}.`);
+        return;
+    }
+
+    let leagues = await League.findBy({
+        season,
+        ...(regionCode ? { regionCode } : {}),
+    });
+
+    if (searchText && searchText.trim() != "") {
+        let results = fuzzySearch(
+            leagues,
+            searchText.trim(),
+            limit ? +limit : undefined,
+            "name",
+            true
+        );
+        leagues = results.map((d) => d.document);
+    } else if (limit) {
+        leagues = leagues.slice(0, +limit);
+    }
+
+    res.send(leagues);
+}
+
+async function getLeagueRankings(
+    season: Season,
+    leagueCode: string,
+    regionCode: string
+): Promise<any[]> {
+    if (season < firstSeasonLeagueRankings) return [];
+
+    let rankings = await LeagueRanking[season].find({
+        where: { leagueCode, regionCode },
+        order: { rank: "ASC" },
+    });
+    let results = [];
+
+    for (let r of rankings) {
+        if (r.hasStats) {
+            results.push({
+                season: r.season,
+                leagueCode: r.leagueCode,
+                regionCode: r.regionCode,
+                teamNumber: r.teamNumber,
+                isRemote: r.isRemote,
+                stats: {
+                    rank: r.rank,
+                    avgRp: r.avgRp,
+                    rp: r.rp,
+                    tb1: r.tb1,
+                    tb2: r.tb2,
+                    wins: r.wins,
+                    losses: r.losses,
+                    ties: r.ties,
+                    dqs: r.dqs,
+                    qualMatchesPlayed: r.qualMatchesPlayed,
+                    tot: r.tot,
+                    avg: r.avg,
+                    opr: r.opr,
+                    min: r.min,
+                    max: r.max,
+                    dev: r.dev,
+                },
+                createdAt: r.createdAt,
+                updatedAt: r.updatedAt,
+            });
+        } else {
+            results.push({
+                season: r.season,
+                leagueCode: r.leagueCode,
+                regionCode: r.regionCode,
+                teamNumber: r.teamNumber,
+                isRemote: r.isRemote,
+                stats: null,
+                createdAt: r.createdAt,
+                updatedAt: r.updatedAt,
+            });
+        }
+    }
+
+    return results;
+}
+
+async function leagueByCode(
+    req: Request<{ season: string; regionCode: string; code: string }>,
+    res: Response
+) {
+    let season = +req.params.season;
+    let { regionCode, code } = req.params;
+
+    if (!isSeason(season)) {
+        res.status(400).send(`Invalid season ${season}.`);
+        return;
+    }
+
+    let league = await League.findOneBy({ season, code, regionCode });
+
+    if (!league) {
+        res.status(404).send(
+            `No league in season ${season} with code ${code} and region ${regionCode}.`
+        );
+        return;
+    }
+
+    res.send(league);
+}
+
+async function leagueTeams(
+    req: Request<{ season: string; regionCode: string; code: string }>,
+    res: Response
+) {
+    let season = +req.params.season;
+    let { regionCode, code: leagueCode } = req.params;
+
+    if (!isSeason(season)) {
+        res.status(400).send(`Invalid season ${season}.`);
+        return;
+    }
+
+    res.send(await getLeagueRankings(season, leagueCode, regionCode));
+}
+
+async function eventAdvancement(req: Request<{ season: string; code: string }>, res: Response) {
+    let season = +req.params.season;
+    let eventCode = req.params.code;
+
+    if (!isSeason(season)) {
+        res.status(400).send(`Invalid season ${season}.`);
+        return;
+    }
+
+    let event = await Event.findOneBy({ season, code: eventCode });
+
+    if (!event) {
+        res.status(404).send(`No event in season ${season} with code ${eventCode}.`);
+        return;
+    }
+
+    let advancement = await AdvancementScore.find({
+        where: { season, eventCode },
+        order: { rank: "ASC" },
+    });
+
+    res.send(advancement);
 }
 
 async function eventPreview(req: Request<{ season: string; code: string }>, res: Response) {

@@ -1,8 +1,7 @@
 import { GraphQLFieldConfig, GraphQLInt, GraphQLObjectType } from "graphql";
-import { dataLoaderResolverList, dataLoaderResolverSingle } from "../utils";
+import { dataLoaderResolver, dataLoaderResolverList, dataLoaderResolverSingle } from "../utils";
 import {
     ALL_SEASONS,
-    DESCRIPTORS,
     DateTimeTy,
     FloatTy,
     IntTy,
@@ -29,7 +28,17 @@ import { TeamEventParticipation } from "../../db/entities/dyn/team-event-partici
 import { TeamEventParticipationGQL } from "./TeamEventParticipation";
 import { RegionOptionGQL } from "./enums";
 import { DATA_SOURCE } from "../../db/data-source";
-import { Event } from "../../db/entities/Event";
+import { getQuickStatsViewName } from "../../db/quickstats-materialized-view";
+import { TeamEpaHistory } from "../../db/entities/TeamEpaHistory";
+import { teamEpaRankLoader } from "../../db/loaders/team-epa-loader";
+import { TeamEpa } from "../../db/entities/TeamEpa";
+import { TeamOpr } from "../../db/entities/TeamOpr";
+import {
+    teamEpaCategoryRankLoader,
+    teamEpaCategoryHistoryLoader,
+} from "../../db/loaders/team-epa-category-loader";
+import { TeamAvatar } from "../../db/entities/TeamAvatar";
+import { TeamAvatarGQL, avatarHistoryLoader } from "./TeamAvatar";
 
 const QuickStatGQL = new GraphQLObjectType({
     name: "QuickStat",
@@ -51,10 +60,159 @@ const QuickStatsGQL = new GraphQLObjectType({
     },
 });
 
+type SeasonTeamKey = { season: Season; teamNumber: number };
+
+export const TeamEpaGQL: GraphQLObjectType = new GraphQLObjectType({
+    name: "TeamEpa",
+    fields: () => ({
+        season: IntTy,
+        teamNumber: IntTy,
+        epa: FloatTy,
+        matchesPlayed: IntTy,
+        rank: IntTy,
+        // Cross-referenced against TeamOpr, for pages that want to show both ratings side by side
+        // (e.g. the records page's Rankings tab) without a second round trip.
+        opr: {
+            type: nullTy(FloatTy).type,
+            resolve: dataLoaderResolver<SeasonTeamKey, number | null, SeasonTeamKey, {}, TeamOpr>(
+                (e) => ({ season: e.season, teamNumber: e.teamNumber }),
+                (keys) => TeamOpr.find({ where: keys }),
+                (keys, results) =>
+                    keys.map(
+                        (k) =>
+                            results.find(
+                                (r) => r.season == k.season && r.teamNumber == k.teamNumber
+                            )?.opr ?? null
+                    )
+            ),
+        },
+        team: {
+            type: nn(TeamGQL),
+            resolve: dataLoaderResolverSingle<{ teamNumber: number }, Team, number>(
+                (e) => e.teamNumber,
+                (keys) => Team.find({ where: { number: In(keys) } }),
+                (k, t) => k == t.number
+            ),
+        },
+    }),
+});
+
+export const TeamOprGQL: GraphQLObjectType = new GraphQLObjectType({
+    name: "TeamOpr",
+    fields: () => ({
+        season: IntTy,
+        teamNumber: IntTy,
+        opr: FloatTy,
+        matchesPlayed: IntTy,
+        rank: IntTy,
+        // Cross-referenced against TeamEpa - see TeamEpaGQL.opr's comment.
+        epa: {
+            type: nullTy(FloatTy).type,
+            resolve: dataLoaderResolver<SeasonTeamKey, number | null, SeasonTeamKey, {}, TeamEpa>(
+                (e) => ({ season: e.season, teamNumber: e.teamNumber }),
+                (keys) => TeamEpa.find({ where: keys }),
+                (keys, results) =>
+                    keys.map(
+                        (k) =>
+                            results.find(
+                                (r) => r.season == k.season && r.teamNumber == k.teamNumber
+                            )?.epa ?? null
+                    )
+            ),
+        },
+        team: {
+            type: nn(TeamGQL),
+            resolve: dataLoaderResolverSingle<{ teamNumber: number }, Team, number>(
+                (e) => e.teamNumber,
+                (keys) => Team.find({ where: { number: In(keys) } }),
+                (k, t) => k == t.number
+            ),
+        },
+    }),
+});
+
+// Batched via teamEpaRankLoader - one rank()-window scan per season across a whole tick's
+// teams, not one per team.
+export async function getTeamEpa(teamNumber: number, season: Season) {
+    let res = await teamEpaRankLoader.load(`${season}:${teamNumber}`);
+    if (!res) return null;
+
+    return { season, teamNumber, epa: res.epa, matchesPlayed: res.matchesPlayed, rank: res.rank };
+}
+
+const TeamEpaHistoryGQL = new GraphQLObjectType({
+    name: "TeamEpaHistoryPoint",
+    fields: {
+        season: IntTy,
+        eventCode: StrTy,
+        matchId: IntTy,
+        epa: FloatTy,
+        matchesPlayed: IntTy,
+        matchTime: nullTy(DateTimeTy),
+    },
+});
+
+const TeamEpaCategoryGQL = new GraphQLObjectType({
+    name: "TeamEpaCategory",
+    fields: {
+        season: IntTy,
+        teamNumber: IntTy,
+        category: StrTy,
+        epa: FloatTy,
+        matchesPlayed: IntTy,
+        rank: IntTy,
+    },
+});
+
+async function getTeamEpaCategory(teamNumber: number, season: Season, category: string) {
+    let res = await teamEpaCategoryRankLoader.load(`${season}:${teamNumber}:${category}`);
+    if (!res) return null;
+
+    return {
+        season,
+        teamNumber,
+        category,
+        epa: res.epa,
+        matchesPlayed: res.matchesPlayed,
+        rank: res.rank,
+    };
+}
+
+const TeamEpaGroupGQL = new GraphQLObjectType({
+    name: "TeamEpaGroup",
+    fields: {
+        // Null on seasons with no endgame
+        auto: { type: TeamEpaCategoryGQL },
+        dc: { type: TeamEpaCategoryGQL },
+        eg: { type: TeamEpaCategoryGQL },
+        total: { type: TeamEpaGQL },
+        np: { type: TeamEpaCategoryGQL },
+    },
+});
+
+const TeamEpaGroupHistoryGQL = new GraphQLObjectType({
+    name: "TeamEpaGroupHistory",
+    fields: {
+        auto: { type: list(nn(TeamEpaHistoryGQL)) },
+        dc: { type: list(nn(TeamEpaHistoryGQL)) },
+        eg: { type: list(nn(TeamEpaHistoryGQL)) },
+        total: { type: list(nn(TeamEpaHistoryGQL)) },
+        np: { type: list(nn(TeamEpaHistoryGQL)) },
+    },
+});
+
+async function getTeamEpaCategoryHistory(teamNumber: number, season: Season, category: string) {
+    let rows = await teamEpaCategoryHistoryLoader.load(`${season}:${teamNumber}:${category}`);
+    // Mirrors epaHistory's filter above - matchesPlayed == 0 is the pre-season bootstrap state,
+    // not a real match snapshot.
+    return rows.filter((r) => r.matchesPlayed > 0);
+}
+
 let cachedQSCount: Partial<Record<Season, { count: number; time: number }>> = {};
 let cacheTime = 1000 * 60 * 5; // 5 minutes
 
 async function getQuickStatCount(season: Season, region: RegionOption | null) {
+    let view = getQuickStatsViewName(season);
     let specialRegion = region && region != RegionOption.All;
 
     let cached = cachedQSCount[season];
@@ -62,19 +220,21 @@ async function getQuickStatCount(season: Season, region: RegionOption | null) {
         return cached.count;
     }
 
-    let q = DATA_SOURCE.createQueryBuilder(`tep_${season}`, "t")
-        .leftJoin("event", "e", "e.season = t.season AND e.code = t.event_code")
-        .select("count(distinct team_number)")
-        .where("NOT is_remote")
-        .andWhere("has_stats")
-        .andWhere("NOT e.modified_rules");
-
-    if (region && region != RegionOption.All) {
-        q.andWhere("region_code IN (:...regions)", { regions: getRegionCodes(region) });
+    let count: number;
+    if (specialRegion) {
+        let q = DATA_SOURCE.createQueryBuilder()
+            .from(view, "qs")
+            .select("count(*)", "count")
+            .where("region_code IN (:...regions)", { regions: getRegionCodes(region!) });
+        let raw = await q.getRawOne();
+        count = +raw.count;
+    } else {
+        let q = DATA_SOURCE.createQueryBuilder()
+            .from(view, "qs")
+            .select("max(team_count)", "count");
+        let raw = await q.getRawOne();
+        count = +(raw?.count ?? 0);
     }
-
-    let raw = await q.getRawOne();
-    let count = +raw.count;
 
     if (!specialRegion) {
         cachedQSCount[season] = { count, time: Date.now() };
@@ -84,52 +244,34 @@ async function getQuickStatCount(season: Season, region: RegionOption | null) {
 }
 
 export async function getQuickStats(number: number, season: Season, region: RegionOption | null) {
-    let total = DESCRIPTORS[season].pensSubtract ? "total_points" : "total_points_np";
-    let max = DATA_SOURCE.createQueryBuilder(`tep_${season}`, "t")
-        .leftJoin("event", "e", "e.season = t.season AND e.code = t.event_code")
-        .select("team_number")
-        .addSelect(`max(opr_${total})`, "tot")
-        .addSelect("max(opr_auto_points)", "auto")
-        .addSelect("max(opr_dc_points)", "dc");
+    let view = getQuickStatsViewName(season);
+    let specialRegion = region && region != RegionOption.All;
 
-    // HELP: Season Specific
-    let egColumn = "opr_eg_points";
-    if (season == Season.IntoTheDeep) {
-        egColumn = "opr_dc_park_points";
-    } else if (season == Season.Decode) {
-        egColumn = "opr_dc_base_points";
-    } else if (season == Season.BioBuzz) {
-        egColumn = "opr_dc_park_points";
+    let res;
+    if (specialRegion) {
+        // Preserve current semantics: ranks are computed within the filtered region scope.
+        let ranked = DATA_SOURCE.createQueryBuilder()
+            .from(view, "qs")
+            .select("*")
+            .addSelect("rank() over (order by tot DESC)", "tot_rank")
+            .addSelect("rank() over (order by auto DESC)", "auto_rank")
+            .addSelect("rank() over (order by dc DESC)", "dc_rank")
+            .addSelect("rank() over (order by eg DESC)", "eg_rank")
+            .where("region_code IN (:...regions)", { regions: getRegionCodes(region!) });
+
+        res = await DATA_SOURCE.createQueryBuilder()
+            .addCommonTableExpression(ranked, "region_ranked")
+            .from("region_ranked", "ranks")
+            .select("*")
+            .where("team_number = :number", { number })
+            .getRawOne();
+    } else {
+        res = await DATA_SOURCE.createQueryBuilder()
+            .from(view, "qs")
+            .select("*")
+            .where("team_number = :number", { number })
+            .getRawOne();
     }
-    max = max.addSelect(`max(${egColumn})`, "eg");
-
-    max = max
-        .where("NOT is_remote")
-        .andWhere("has_stats")
-        .andWhere("NOT e.modified_rules")
-        .groupBy("team_number");
-
-    if (region && region != RegionOption.All) {
-        max.andWhere("region_code IN (:...regions)", {
-            regions: getRegionCodes(region),
-        });
-    }
-
-    let ranks = DATA_SOURCE.createQueryBuilder()
-        .from("max", "max")
-        .select("*")
-        .addSelect("rank() over (order by tot DESC)", "tot_rank")
-        .addSelect("rank() over (order by auto DESC)", "auto_rank")
-        .addSelect("rank() over (order by dc DESC)", "dc_rank")
-        .addSelect("rank() over (order by eg DESC)", "eg_rank");
-
-    let res = await DATA_SOURCE.createQueryBuilder()
-        .addCommonTableExpression(max, "max")
-        .addCommonTableExpression(ranks, "ranks")
-        .from("ranks", "ranks")
-        .select("*")
-        .where("team_number = :number", { number })
-        .getRawOne();
 
     if (!res) return null;
 
@@ -170,6 +312,18 @@ export const TeamGQL: GraphQLObjectType = new GraphQLObjectType({
         website: nullTy(StrTy),
         createdAt: DateTimeTy,
         updatedAt: DateTimeTy,
+        avatar: {
+            type: nullTy(StrTy).type,
+            resolve: (t: Team) => t.avatarUrl ?? null,
+        },
+        avatarHistory: {
+            type: list(nn(TeamAvatarGQL)),
+            resolve: dataLoaderResolverList<Team, TeamAvatar, number>(
+                (t) => t.number,
+                (keys) => avatarHistoryLoader(keys),
+                (k, r) => k == r.teamNumber
+            ),
+        },
         awards: {
             type: list(nn(AwardGQL)),
             args: { season: nullTy(IntTy) },
@@ -234,6 +388,69 @@ export const TeamGQL: GraphQLObjectType = new GraphQLObjectType({
                 return getQuickStats(team.number, season, region);
             },
         },
+
+        epa: {
+            type: TeamEpaGQL,
+            args: { season: IntTy },
+            resolve: async (team, { season }: { season: Season }) => {
+                if (ALL_SEASONS.indexOf(season) == -1) throw "invalid season";
+                return getTeamEpa(team.number, season);
+            },
+        },
+
+        epaHistory: {
+            type: list(nn(TeamEpaHistoryGQL)),
+            args: { season: IntTy },
+            resolve: async (team, { season }: { season: Season }) => {
+                if (ALL_SEASONS.indexOf(season) == -1) throw "invalid season";
+                return (
+                    TeamEpaHistory.createQueryBuilder("h")
+                        .where("season = :season", { season })
+                        .andWhere("team_number = :teamNumber", { teamNumber: team.number })
+                        // if matches_played == 0 there is no history
+                        .andWhere("matches_played > 0")
+                        .orderBy("matches_played", "ASC")
+                        .getMany()
+                );
+            },
+        },
+
+        epaGroup: {
+            type: TeamEpaGroupGQL,
+            args: { season: IntTy },
+            resolve: async (team, { season }: { season: Season }) => {
+                if (ALL_SEASONS.indexOf(season) == -1) throw "invalid season";
+                let [auto, dc, eg, total, np] = await Promise.all([
+                    getTeamEpaCategory(team.number, season, "auto"),
+                    getTeamEpaCategory(team.number, season, "dc"),
+                    getTeamEpaCategory(team.number, season, "eg"),
+                    getTeamEpa(team.number, season),
+                    getTeamEpaCategory(team.number, season, "np"),
+                ]);
+                return { auto, dc, eg, total, np };
+            },
+        },
+
+        epaGroupHistory: {
+            type: TeamEpaGroupHistoryGQL,
+            args: { season: IntTy },
+            resolve: async (team, { season }: { season: Season }) => {
+                if (ALL_SEASONS.indexOf(season) == -1) throw "invalid season";
+                let [auto, dc, eg, total, np] = await Promise.all([
+                    getTeamEpaCategoryHistory(team.number, season, "auto"),
+                    getTeamEpaCategoryHistory(team.number, season, "dc"),
+                    getTeamEpaCategoryHistory(team.number, season, "eg"),
+                    TeamEpaHistory.createQueryBuilder("h")
+                        .where("season = :season", { season })
+                        .andWhere("team_number = :teamNumber", { teamNumber: team.number })
+                        .andWhere("matches_played > 0")
+                        .orderBy("matches_played", "ASC")
+                        .getMany(),
+                    getTeamEpaCategoryHistory(team.number, season, "np"),
+                ]);
+                return { auto, dc, eg, total, np };
+            },
+        },
     }),
 });
 
@@ -279,11 +496,9 @@ export const TeamQueries: Record<string, GraphQLFieldConfig<any, any>> = {
             let q = DATA_SOURCE.getRepository(Team).createQueryBuilder("t").distinctOn(["number"]);
 
             if (region && region != RegionOption.All) {
-                q.leftJoin(TeamMatchParticipation, "m", "t.number = m.team_number")
-                    .leftJoin(Event, "e", "e.season = m.season AND e.code = m.event_code")
-                    .andWhere("e.region_code IN (:...regions)", {
-                        regions: getRegionCodes(region),
-                    });
+                q.andWhere("t.region_code IN (:...regions)", {
+                    regions: getRegionCodes(region),
+                });
             }
 
             if (limit && (!searchText || searchText.trim() == "")) {

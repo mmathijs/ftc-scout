@@ -8,8 +8,23 @@ fragment FullMatch on Match {
     tournamentLevel
     scheduledStartTime
     actualStartTime
+    epaPrediction {
+        redScore
+        blueScore
+        redWinProb
+        redSigma
+        blueSigma
+    }
     scores {
         ...FullMatchScores
+    }
+    videos {
+        url
+        title
+        source
+        official
+        createdAt
+        updatedAt
     }
     teams {
         season
@@ -22,6 +37,7 @@ fragment FullMatch on Match {
         team {
             number
             name
+            avatar
         }
         surrogate
         noShow

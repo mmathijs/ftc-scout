@@ -6,7 +6,8 @@ export default defineConfig((mode) => ({
         noExternal: ["@graphql-typed-document-node/core", "three"],
     },
     optimizeDeps: {
-        exclude: ["@graphql-typed-document-node/core", "svelte-fa"],
+        // Linked package, so changes show up in dev.
+        exclude: ["@graphql-typed-document-node/core", "svelte-fa", "ftc-embeds"],
     },
     // Resolves importing common.
     resolve: {

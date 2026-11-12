@@ -2,16 +2,17 @@ import type { Express, Response, Request } from "express";
 import { Team } from "../db/entities/Team";
 import { Event } from "../db/entities/Event";
 import { ALL_SEASONS } from "@ftc-scout/common";
+import { asyncHandler } from "../rest/async-handler";
 
 export function setupSiteMap(app: Express) {
-    app.get("/sitemap.xml", sitemap);
+    app.get("/sitemap.xml", asyncHandler(sitemap));
 }
 
 async function sitemap(_req: Request, res: Response) {
     const xmlHeader = '<?xml version="1.0" encoding="UTF-8"?>\n';
     const urlsetHeader = '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
     const urlsetFooter = "</urlset>";
-    const pre = "https://ftcscout.org";
+    const pre = "https://ftcscout.mmathijs.nl";
     let urls = [];
     let xmls = [];
 

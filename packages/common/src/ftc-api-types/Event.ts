@@ -23,4 +23,8 @@ export interface EventFtcApi {
     timezone: string | null;
     dateStart: string;
     dateEnd: string;
+    coordinates: {
+        type: string;
+        coordinates: [number, number];
+    } | null;
 }

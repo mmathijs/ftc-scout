@@ -8,10 +8,25 @@ import { MatchScoreSchemas } from "./entities/dyn/match-score";
 import { Match } from "./entities/Match";
 import { TeamMatchParticipation } from "./entities/TeamMatchParticipation";
 import { Award } from "./entities/Award";
+import { TeamAvatar } from "./entities/TeamAvatar";
 import { TeamEventParticipationSchemas } from "./entities/dyn/team-event-participation";
+import { TeamEpa } from "./entities/TeamEpa";
+import { TeamEpaHistory } from "./entities/TeamEpaHistory";
+import { TeamEpaCategory } from "./entities/TeamEpaCategory";
+import { TeamEpaCategoryHistory } from "./entities/TeamEpaCategoryHistory";
+import { TeamOpr } from "./entities/TeamOpr";
+import { EpaLiveState } from "./entities/EpaLiveState";
+import { PredictionStat } from "./entities/PredictionStat";
 import { ApiReq } from "./entities/ApiReq";
 import { Analytics } from "./entities/Analytics";
+import { QueryAnalytics } from "./entities/QueryAnalytics";
+import { League } from "./entities/League";
+import { LeagueTeam } from "./entities/LeagueTeam";
+import { LeagueRankingSchemas } from "./entities/dyn/league-ranking";
 import { BestName } from "./entities/BestName";
+import { Video } from "./entities/Video";
+import { AdvancementScore } from "./entities/AdvancementScore";
+import { EventPitMap } from "./entities/EventPitMap";
 
 export const DEV_ENTITIES: MixedList<string | Function | EntitySchema<any>> = [FtcApiReq];
 
@@ -20,12 +35,27 @@ export const ENTITIES: MixedList<string | Function | EntitySchema<any>> = [
     Team,
     Event,
     Award,
+    League,
+    LeagueTeam,
+    TeamAvatar,
     Match,
+    Video,
     TeamMatchParticipation,
+    AdvancementScore,
+    EventPitMap,
     ...Object.values(MatchScoreSchemas),
     ...Object.values(TeamEventParticipationSchemas),
+    ...Object.values(LeagueRankingSchemas),
+    TeamEpa,
+    TeamEpaHistory,
+    TeamEpaCategory,
+    TeamEpaCategoryHistory,
+    TeamOpr,
+    EpaLiveState,
+    PredictionStat,
     BestName,
     ApiReq,
     Analytics,
+    QueryAnalytics,
     ...(IS_DEV ? DEV_ENTITIES : []),
 ];

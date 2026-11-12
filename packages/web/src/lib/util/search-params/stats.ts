@@ -33,12 +33,12 @@ export function STATS_EC_DC<T>(set: StatSet<T>, defIds: string[]) {
             return arrayEq(ids, defIds) ? null : ids.join("_");
         },
         decode: (s: string | null) => {
-            if (s == null) return defIds.map((id) => set.getStat(id));
+            if (s == null) return defIds.map((id) => set.getStat(id)).filter(notEmpty);
             let stats = s
                 .split("_")
                 .map((id) => set.getStat(id))
                 .filter(notEmpty);
-            return stats.length ? stats : defIds.map((id) => set.getStat(id));
+            return stats.length ? stats : defIds.map((id) => set.getStat(id)).filter(notEmpty);
         },
     };
 }

@@ -11,6 +11,7 @@
             "tournamentLevel": "Quals",
             "scheduledStartTime": "2023-02-05T20:52:00.000Z",
             "actualStartTime": "2023-02-05T21:53:48.583Z",
+            "videos": [],
             "scores": {
                 "__typename": "MatchScores2022",
                 "season": 2022,
