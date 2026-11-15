@@ -1,0 +1,41 @@
+name: Check Mobile App
+on:
+    push:
+        branches:
+            - main
+        paths:
+            - "packages/common/**"
+            - "packages/web/src/lib/**"
+            - "packages/mobile/**"
+            - ".github/workflows/mobile.yml"
+    pull_request:
+        paths:
+            - "packages/common/**"
+            - "packages/web/src/lib/**"
+            - "packages/mobile/**"
+            - ".github/workflows/mobile.yml"
+    workflow_dispatch:
+jobs:
+    check:
+        name: Check, test and bundle
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: packages/mobile
+        steps:
+            - name: Repo Checkout
+              uses: actions/checkout@v4
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version-file: .nvmrc
+                  cache: npm
+                  cache-dependency-path: packages/mobile/package-lock.json
+
+            - run: npm ci
+
+            - run: npm run check
+
+            - run: npm test
+
+            - run: npm run export

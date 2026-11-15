@@ -1,20 +1,24 @@
-# Welcome to your Expo app 👋
+# FTCScout mobile app
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+The FTCScout app for Android and iOS, built with [Expo](https://expo.dev) (React Native).
 
-## Get started
+## Shared code
 
-1. Install dependencies
+The app uses `packages/common` and parts of `packages/web/src/lib` (`util`, `printers` and the GraphQL queries) as source, plus the ranking point icons from `packages/web/static/img`.
 
-    ```bash
-    npm install
-    ```
+The API types are generated from the schema at `https://api.ftcscout.org/graphql`, the website's `.graphql` files and the app's own in `src/api/graphql`. To generate them against a local server, set `GRAPHQL_SCHEMA` (see `codegen.ts`):
 
-2. Start the app
+```bash
+GRAPHQL_SCHEMA=http://localhost:4000/graphql npm run gen
+```
 
-    ```bash
-    npx expo start
-    ```
+## Running
+
+```bash
+cd packages/mobile
+npm install
+npx expo start
+```
 
 In the output, you'll find options to open the app in a
 
@@ -23,34 +27,26 @@ In the output, you'll find options to open the app in a
 -   [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
 -   [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
 
-You can start developing by editing the files inside the **src/app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+By default the app uses `https://ftcscout-api.mmathijs.nl` and links to `https://ftcscout.mmathijs.nl`. Set `EXPO_PUBLIC_API_ORIGIN` and `EXPO_PUBLIC_SITE_ORIGIN` (in `.env.local`, or in the EAS build profile) to use something else.
 
-## Get a fresh project
-
-When you're ready, run:
+## Checks
 
 ```bash
-npm run reset-project
+npm run check
+npm test
+npm run export
 ```
 
-This command will move the starter code to the **example** directory and create a blank **src/app** directory where you can start developing.
+`check` runs TypeScript, `test` runs Jest and `export` bundles the app for Android and iOS. CI runs all three (`.github/workflows/mobile.yml`).
 
-### Other setup steps
+## Building
 
--   To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
--   If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
--   Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+Store builds are made with [EAS](https://docs.expo.dev/build/introduction/). Run these in `packages/mobile`:
 
-## Learn more
+```bash
+npx eas-cli@latest build --profile preview --platform android
+npx eas-cli@latest build --profile production --platform all
+npx eas-cli@latest submit --platform all
+```
 
-To learn more about developing your project with Expo, look at the following resources:
-
--   [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
--   [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
--   [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
--   [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+`preview` gives an APK to install directly. The app ids are `nl.mmathijs.ftcscout` (`app.config.ts`).

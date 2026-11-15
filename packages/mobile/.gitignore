@@ -41,3 +41,6 @@ example
 # generated native folders
 /ios
 /android
+
+# Generated from the API schema and the website's queries (npm run gen)
+src/api/generated/

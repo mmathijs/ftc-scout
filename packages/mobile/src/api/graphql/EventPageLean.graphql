@@ -1,0 +1,57 @@
+# Smaller version of EventPage
+query EventPageLean($season: Int!, $code: String!) {
+    eventByCode(season: $season, code: $code) {
+        ...BasicEventInfo
+        website
+        liveStreamURL
+        livestreamsByDay {
+            day
+            liveStreamURL
+            webcasts
+        }
+        type
+        ongoing
+        matches {
+            ...LeanMatch
+        }
+        teams {
+            season
+            eventCode
+            teamNumber
+            team {
+                number
+                name
+                location {
+                    city
+                    state
+                    country
+                }
+            }
+            stats {
+                __typename
+            }
+        }
+        previewStats {
+            teamNumber
+            npOpr
+        }
+        awards {
+            season
+            eventCode
+            type
+            placement
+            divisionName
+            personName
+            teamNumber
+            team {
+                number
+                name
+            }
+        }
+        relatedEvents {
+            season
+            code
+            name
+        }
+    }
+}

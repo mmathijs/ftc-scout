@@ -2,10 +2,23 @@
     "extends": "expo/tsconfig.base",
     "compilerOptions": {
         "strict": true,
+        "types": ["jest"],
         "paths": {
             "@/*": ["./src/*"],
-            "@/assets/*": ["./assets/*"]
+            "@/assets/*": ["./assets/*"],
+            "@ftc-scout/common": ["../common/src/index.ts"],
+            "@web/*": ["../web/src/lib/*"],
+            "@web-static/*": ["../web/static/*"],
+            // The shared package's imports, from this package's install.
+            "graphql": ["./node_modules/graphql"],
+            "graphql/*": ["./node_modules/graphql/*"],
+            "graphql-scalars": ["./node_modules/graphql-scalars"],
+            "ml-matrix": ["./node_modules/ml-matrix"],
+            "async-mutex": ["./node_modules/async-mutex"],
+            "typeorm": ["./src/shims/typeorm.d.ts"],
+            "packages/common/src/*": ["../common/src/*"]
         }
     },
-    "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"]
+    "include": ["src/**/*.ts", "src/**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"],
+    "exclude": ["node_modules", "../common/src/**/*.test.ts"]
 }
