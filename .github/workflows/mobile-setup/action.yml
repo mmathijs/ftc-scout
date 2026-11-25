@@ -1,0 +1,32 @@
+name: Set up the mobile app
+description: >
+    Installs Node and the dependencies, builds the shared packages and generates the API types: what
+    the mobile app's checks, updates and store builds need. Run actions/checkout first.
+
+runs:
+    using: composite
+    steps:
+        - uses: actions/setup-node@v4
+          with:
+              node-version-file: .nvmrc
+              cache: npm
+              cache-dependency-path: |
+                  package-lock.json
+                  packages/mobile/package-lock.json
+
+        # The app's API types come from the server's current schema, so a schema change that
+        # breaks the app fails its checks.
+        - run: npm ci
+          shell: bash
+        - run: npm run common:build
+          shell: bash
+        - run: npm run server:build
+          shell: bash
+        - run: npm run server:schema
+          shell: bash
+
+        - run: npm ci
+          shell: bash
+          working-directory: packages/mobile
+          env:
+              GRAPHQL_SCHEMA: ../web/schema.graphql
