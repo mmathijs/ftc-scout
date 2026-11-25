@@ -1,0 +1,55 @@
+query TepRecords(
+    $season: Int!
+    $skip: Int!
+    $take: Int!
+    $sortBy: String!
+    $sortDir: SortDir!
+    $filter: Filter
+    $region: RegionOption
+    $type: EventTypeOption
+    $remote: RemoteOption
+    $start: Date
+    $end: Date
+) {
+    tepRecords(
+        season: $season
+        skip: $skip
+        take: $take
+        sortBy: $sortBy
+        sortDir: $sortDir
+        filter: $filter
+        region: $region
+        type: $type
+        remote: $remote
+        start: $start
+        end: $end
+    ) {
+        data {
+            data {
+                season
+                eventCode
+                teamNumber
+                team {
+                    number
+                    name
+                }
+                event {
+                    season
+                    code
+                    name
+                    start
+                    end
+                }
+                stats {
+                    ...FullStats
+                }
+            }
+            filterRank
+            filterSkipRank
+            noFilterRank
+            noFilterSkipRank
+        }
+        offset
+        count
+    }
+}

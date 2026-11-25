@@ -14,6 +14,7 @@ on:
       - main
     paths:
       - "packages/**"
+      - "!packages/mobile/**"
       - "package.json"
       - "package-lock.json"
       - ".nvmrc"
@@ -21,6 +22,7 @@ on:
   pull_request:
     paths:
       - "packages/**"
+      - "!packages/mobile/**"
       - "package.json"
       - "package-lock.json"
       - ".nvmrc"

@@ -1,0 +1,64 @@
+name: Check Mobile App
+on:
+    push:
+        branches:
+            - main
+            - dev
+        paths: &paths
+            - "packages/common/**"
+            - "packages/server/**"
+            - "packages/web/src/lib/**"
+            - "packages/web/static/img/**"
+            - "packages/mobile/**"
+            - "package.json"
+            - "package-lock.json"
+            - ".nvmrc"
+            - ".github/workflows/mobile.yml"
+    pull_request:
+        paths: *paths
+    workflow_dispatch:
+
+concurrency:
+    group: mobile-${{ github.ref }}
+    cancel-in-progress: true
+
+permissions:
+    contents: read
+
+jobs:
+    check:
+        name: Check, test and bundle
+        runs-on: ubuntu-latest
+        steps:
+            - name: Repo Checkout
+              uses: actions/checkout@v4
+              with:
+                  persist-credentials: false
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version-file: .nvmrc
+                  cache: npm
+                  cache-dependency-path: |
+                      package-lock.json
+                      packages/mobile/package-lock.json
+
+            # Prevent breaking the app by changing the schema
+            - run: npm ci
+            - run: npm run common:build
+            - run: npm run server:build
+            - run: npm run server:schema
+
+            - run: npm ci
+              working-directory: packages/mobile
+              env:
+                  GRAPHQL_SCHEMA: ../web/schema.graphql
+
+            - run: npm run check
+              working-directory: packages/mobile
+
+            - run: npm test
+              working-directory: packages/mobile
+
+            - run: npm run export
+              working-directory: packages/mobile

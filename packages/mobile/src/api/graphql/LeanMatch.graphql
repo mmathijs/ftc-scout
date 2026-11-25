@@ -1,0 +1,178 @@
+# Smaller version of the Match query
+fragment LeanMatch on Match {
+    season
+    eventCode
+    id
+    matchNum
+    series
+    description
+    tournamentLevel
+    scheduledStartTime
+    actualStartTime
+    scores {
+        __typename
+        ... on MatchScores2026 {
+            season
+            eventCode
+            matchId
+            red {
+                alliance
+                totalPoints
+                totalPointsNp
+                swarmRp
+                pollinator1Rp
+                pollinator2Rp
+            }
+            blue {
+                alliance
+                totalPoints
+                totalPointsNp
+                swarmRp
+                pollinator1Rp
+                pollinator2Rp
+            }
+        }
+        ... on MatchScores2025 {
+            season
+            eventCode
+            matchId
+            red {
+                alliance
+                totalPoints
+                totalPointsNp
+                movementRp
+                goalRp
+                patternRp
+            }
+            blue {
+                alliance
+                totalPoints
+                totalPointsNp
+                movementRp
+                goalRp
+                patternRp
+            }
+        }
+        ... on MatchScores2024 {
+            season
+            eventCode
+            matchId
+            red {
+                alliance
+                totalPoints
+                totalPointsNp
+            }
+            blue {
+                alliance
+                totalPoints
+                totalPointsNp
+            }
+        }
+        ... on MatchScores2023 {
+            season
+            eventCode
+            matchId
+            red {
+                alliance
+                totalPoints
+                totalPointsNp
+            }
+            blue {
+                alliance
+                totalPoints
+                totalPointsNp
+            }
+        }
+        ... on MatchScores2022 {
+            season
+            eventCode
+            matchId
+            red {
+                alliance
+                totalPoints
+                totalPointsNp
+            }
+            blue {
+                alliance
+                totalPoints
+                totalPointsNp
+            }
+        }
+        ... on MatchScores2021Trad {
+            season
+            eventCode
+            matchId
+            red {
+                alliance
+                totalPoints
+                totalPointsNp
+            }
+            blue {
+                alliance
+                totalPoints
+                totalPointsNp
+            }
+        }
+        ... on MatchScores2020Trad {
+            season
+            eventCode
+            matchId
+            red {
+                alliance
+                totalPoints
+                totalPointsNp
+            }
+            blue {
+                alliance
+                totalPoints
+                totalPointsNp
+            }
+        }
+        ... on MatchScores2019 {
+            season
+            eventCode
+            matchId
+            red {
+                alliance
+                totalPoints
+                totalPointsNp
+            }
+            blue {
+                alliance
+                totalPoints
+                totalPointsNp
+            }
+        }
+        ... on MatchScores2021Remote {
+            season
+            eventCode
+            matchId
+            totalPoints
+            totalPointsNp
+        }
+        ... on MatchScores2020Remote {
+            season
+            eventCode
+            matchId
+            totalPoints
+            totalPointsNp
+        }
+    }
+    teams {
+        season
+        eventCode
+        matchId
+        station
+        allianceRole
+        alliance
+        teamNumber
+        team {
+            number
+            name
+        }
+        surrogate
+        noShow
+        dq
+        onField
+    }
+}
