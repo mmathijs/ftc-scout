@@ -25,10 +25,27 @@ on:
                 options:
                     - none
                     - update
+                    - google-play
                 default: none
             message:
                 description: "update: what changed (shown in xprem's dashboard; empty = the commit message)"
                 required: false
+            track:
+                description: "google-play: the track"
+                type: choice
+                options:
+                    - internal
+                    - alpha
+                    - beta
+                    - production
+                default: internal
+            status:
+                description: "google-play: the release status (draft: finish the release in Play Console)"
+                type: choice
+                options:
+                    - draft
+                    - completed
+                default: draft
 
 concurrency:
     group: mobile-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
@@ -149,3 +166,84 @@ jobs:
                   args=(--branch production --platform all --nonInteractive)
                   if [ -n "$MESSAGE" ]; then args+=(--message "$MESSAGE"); fi
                   npx --yes eoas@3.2.8 publish "${args[@]}"
+
+    # A store build: needed for native changes and runtimeVersion bumps.
+    google-play:
+        name: Build and upload to Google Play
+        needs: check
+        if: github.ref == 'refs/heads/dev' && inputs.release == 'google-play'
+        runs-on: ubuntu-latest
+        # Holds the upload key and the Play service account (see packages/mobile/README.md).
+        environment: play
+        concurrency:
+            group: mobile-google-play
+            cancel-in-progress: false
+        env:
+            AAB: packages/mobile/android/app/build/outputs/bundle/release/app-release.aab
+            # The certificate of the upload key (~/keys/ftcscout-upload.jks, CN=mmathijs,
+            # O=FTCScout). A bundle signed with anything else is not uploaded.
+            UPLOAD_CERT_SHA256: "35:0B:21:50:07:F7:C3:18:5E:D5:AA:AB:8F:57:83:FD:4B:81:A6:BD:6F:4D:A1:92:FE:39:4E:FE:54:0D:28:E3"
+        steps:
+            - name: Repo Checkout
+              uses: actions/checkout@v4
+              with:
+                  persist-credentials: false
+
+            - uses: ./.github/actions/mobile-setup
+
+            - uses: actions/setup-java@v4
+              with:
+                  distribution: temurin
+                  java-version: "17"
+
+            - name: Pick the version code
+              id: version
+              run: echo "code=$(( $(date -u +%s) / 60 ))" >> "$GITHUB_OUTPUT"
+
+            - name: Generate the Android project
+              working-directory: packages/mobile
+              env:
+                  ANDROID_VERSION_CODE: ${{ steps.version.outputs.code }}
+              run: npx expo prebuild --platform android --no-install
+
+            - name: Build the signed app bundle
+              working-directory: packages/mobile/android
+              env:
+                  KEYSTORE_B64: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_B64 }}
+                  ORG_GRADLE_PROJECT_FTCSCOUT_UPLOAD_STORE_PASSWORD: ${{ secrets.ANDROID_UPLOAD_STORE_PASSWORD }}
+                  ORG_GRADLE_PROJECT_FTCSCOUT_UPLOAD_KEY_ALIAS: ${{ secrets.ANDROID_UPLOAD_KEY_ALIAS }}
+                  ORG_GRADLE_PROJECT_FTCSCOUT_UPLOAD_KEY_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEY_PASSWORD }}
+              run: |
+                  set -euo pipefail
+                  keystore="$RUNNER_TEMP/upload.jks"
+                  trap 'rm -f "$keystore"' EXIT
+                  printf '%s' "$KEYSTORE_B64" | base64 -d > "$keystore"
+                  export ORG_GRADLE_PROJECT_FTCSCOUT_UPLOAD_STORE_FILE="$keystore"
+                  ./gradlew :app:bundleRelease --no-daemon
+
+            - name: Check the signature
+              env:
+                  VERSION_CODE: ${{ steps.version.outputs.code }}
+              run: |
+                  set -euo pipefail
+                  signer=$(keytool -printcert -jarfile "$AAB" | grep -oE 'SHA256: [0-9A-F:]+' | head -1 | cut -d' ' -f2)
+                  if [ "$signer" != "$UPLOAD_CERT_SHA256" ]; then
+                      echo "::error::The bundle is signed with $signer, not the upload key. Check the play environment's secrets."
+                      exit 1
+                  fi
+                  echo "Signed with the upload key; version code $VERSION_CODE."
+
+            - uses: actions/upload-artifact@v4
+              with:
+                  name: app-release-${{ steps.version.outputs.code }}
+                  path: ${{ env.AAB }}
+                  retention-days: 14
+
+            - name: Upload to Google Play
+              uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1.1.5
+              with:
+                  serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+                  packageName: nl.mmathijs.ftcscout
+                  releaseFiles: ${{ env.AAB }}
+                  track: ${{ inputs.track }}
+                  status: ${{ inputs.status }}
