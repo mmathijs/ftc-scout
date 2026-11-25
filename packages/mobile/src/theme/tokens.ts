@@ -142,7 +142,7 @@ export const dark: Palette = {
 
     late: "#ffb74d",
     early: "#81c784",
-    alert: "#a96d12",
+    alert: "#9c6510",
     onAlert: "#ffffff",
     inverse: "#dfe2e6",
     onInverse: "#161616",

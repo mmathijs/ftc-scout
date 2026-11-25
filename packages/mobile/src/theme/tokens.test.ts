@@ -19,7 +19,11 @@ function textPairs(p: Palette): [string, string, string][] {
             ["text on a striped stat cell", p.text, c.tintZebra]
         );
     }
-    out.push(["onTheme", p.onTheme, p.theme], ["onInverse", p.onInverse, p.inverse]);
+    out.push(
+        ["onTheme", p.onTheme, p.theme],
+        ["onInverse", p.onInverse, p.inverse],
+        ["onAlert", p.onAlert, p.alert]
+    );
     return out;
 }
 
