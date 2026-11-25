@@ -49,7 +49,15 @@ function Highlighted({
     );
 }
 
-function Result({ result, onOpen }: { result: SearchResult; onOpen: () => void }) {
+function Result({
+    result,
+    last,
+    onOpen,
+}: {
+    result: SearchResult;
+    last: boolean;
+    onOpen: () => void;
+}) {
     let c = useTheme();
     let d = result.document;
     let isTeam = d.__typename == "Team";
@@ -74,7 +82,7 @@ function Result({ result, onOpen }: { result: SearchResult; onOpen: () => void }
                 gap: space.md,
                 paddingHorizontal: space.md,
                 backgroundColor: c.surface,
-                borderBottomWidth: 1,
+                borderBottomWidth: last ? 0 : 1,
                 borderBottomColor: c.sep,
             }}
         >
@@ -219,9 +227,13 @@ export function SearchScreen() {
                     onScrollBeginDrag={Keyboard.dismiss}
                     ListHeaderComponent={<CardTop />}
                     ListFooterComponent={<CardBottom />}
-                    renderItem={({ item }) => (
+                    renderItem={({ item, index }) => (
                         <CardRow pad={space.xs}>
-                            <Result result={item} onOpen={() => addRecentSearch(text)} />
+                            <Result
+                                result={item}
+                                last={index == results.length - 1}
+                                onOpen={() => addRecentSearch(text)}
+                            />
                         </CardRow>
                     )}
                 />
