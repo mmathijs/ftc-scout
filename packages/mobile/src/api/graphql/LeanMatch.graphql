@@ -147,7 +147,6 @@ fragment LeanMatch on Match {
             season
             eventCode
             matchId
-            alliance
             totalPoints
             totalPointsNp
         }
@@ -155,7 +154,6 @@ fragment LeanMatch on Match {
             season
             eventCode
             matchId
-            alliance
             totalPoints
             totalPointsNp
         }

@@ -31,10 +31,6 @@ query EventPageLean($season: Int!, $code: String!) {
                 __typename
             }
         }
-        previewStats {
-            teamNumber
-            npOpr
-        }
         awards {
             season
             eventCode

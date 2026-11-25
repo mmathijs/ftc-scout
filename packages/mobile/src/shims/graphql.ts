@@ -1,3 +1,5 @@
+// Enough of graphql and graphql-scalars for @ftc-scout/common to build the season descriptors.
+
 class Wrapper {
     constructor(public ofType: unknown) {}
 }

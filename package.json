@@ -20,7 +20,7 @@
         "check": "npm run common:check && npm run server:check && npm run web:check"
     },
     "lint-staged": {
-        "*.{ts,js,css,md,json,svelte,graphql}": "prettier --write"
+        "*.{ts,tsx,js,cjs,mjs,css,md,json,svelte,graphql}": "prettier --write"
     },
     "devDependencies": {
         "@types/graphql-fields": "^1.3.5",
