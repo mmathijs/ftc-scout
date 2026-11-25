@@ -90,53 +90,36 @@ jobs:
                   persist-credentials: false
                   fetch-depth: 0
 
+            # The same check as .husky/pre-push: packages/mobile/scripts/check-update.sh.
             - id: check
               env:
                   EVENT: ${{ github.event_name }}
                   BEFORE: ${{ github.event.before }}
               run: |
-                  set -euo pipefail
+                  set -uo pipefail
                   if [ "$EVENT" != "push" ]; then
                       echo "Started by hand: publishing without the check."
                       echo "publish=true" >> "$GITHUB_OUTPUT"
                       exit 0
                   fi
-                  if ! git cat-file -e "${BEFORE}^{commit}" 2>/dev/null; then
-                      echo "::error::Can't tell what this push changed (new or rewritten history). If it's JavaScript-only, run this workflow by hand with release: update."
-                      exit 1
-                  fi
-
-                  # What ends up in the app's bundle.
-                  bundle=$(git diff --name-only "$BEFORE" "$GITHUB_SHA" -- \
-                      packages/common packages/web/src/lib packages/web/static/img packages/mobile \
-                      ':(glob,exclude)packages/mobile/**/*.md' ':(exclude)packages/mobile/store')
-                  if [ -z "$bundle" ]; then
-                      echo "Nothing in the app changed, so there's no update to publish."
-                      echo "publish=false" >> "$GITHUB_OUTPUT"
-                      exit 0
-                  fi
-
-                  # The files where native changes show up.
-                  native=$(git diff --name-only "$BEFORE" "$GITHUB_SHA" -- \
-                      packages/mobile/package.json packages/mobile/package-lock.json \
-                      packages/mobile/app.config.ts packages/mobile/plugins)
-                  if [ -z "$native" ]; then
-                      echo "publish=true" >> "$GITHUB_OUTPUT"
-                      exit 0
-                  fi
-
-                  runtime() {
-                      git show "$1:packages/mobile/app.config.ts" 2>/dev/null \
-                          | grep -oE 'runtimeVersion: *"[^"]*"' || true
-                  }
-                  if [ "$(runtime "$BEFORE")" != "$(runtime "$GITHUB_SHA")" ]; then
-                      echo "::notice::runtimeVersion changed, so no installed build can use an update. Make a new store build instead."
-                      echo "publish=false" >> "$GITHUB_OUTPUT"
-                      exit 0
-                  fi
-
-                  echo "::error::This push changes ${native//$'\n'/ } but not runtimeVersion. If the change is native, bump runtimeVersion in app.config.ts and make a store build. If it's JavaScript-only (e.g. a JS-only package), run this workflow by hand with release: update."
-                  exit 1
+                  code=0
+                  bash packages/mobile/scripts/check-update.sh "$BEFORE" "$GITHUB_SHA" || code=$?
+                  case $code in
+                      0) echo "publish=true" >> "$GITHUB_OUTPUT" ;;
+                      10) echo "publish=false" >> "$GITHUB_OUTPUT" ;;
+                      11)
+                          echo "::notice::runtimeVersion changed: make a store build (release: google-play) instead of an update."
+                          echo "publish=false" >> "$GITHUB_OUTPUT"
+                          ;;
+                      2)
+                          echo "::error::Can't tell what this push changed (new or rewritten history). If it's JavaScript-only, run this workflow by hand with release: update."
+                          exit 1
+                          ;;
+                      *)
+                          echo "::error::A native change without a runtimeVersion bump, see the log above. If it's JavaScript-only, run this workflow by hand with release: update."
+                          exit 1
+                          ;;
+                  esac
 
     update:
         name: Publish the update
