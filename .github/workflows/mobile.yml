@@ -139,6 +139,10 @@ jobs:
 
             - uses: ./.github/actions/mobile-setup
 
+            - name: Check the queries against the app's API
+              working-directory: packages/mobile
+              run: npm run gen
+
             # Publish new version (if only js changes) to ota.mmathijs.nl
             - name: Publish to xprem
               working-directory: packages/mobile
@@ -173,6 +177,12 @@ jobs:
                   persist-credentials: false
 
             - uses: ./.github/actions/mobile-setup
+
+            # The app talks to the API in src/api/config.ts, not to the server in this commit. A query
+            # that API doesn't know makes the screen fail to load, so check them all against it.
+            - name: Check the queries against the app's API
+              working-directory: packages/mobile
+              run: npm run gen
 
             - uses: actions/setup-java@v4
               with:
