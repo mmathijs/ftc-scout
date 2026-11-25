@@ -63,7 +63,7 @@ let statSetCache: Partial<Record<`${Season}-${boolean}`, StatSet<any>>> = {};
 export function getTepStatSet(season: Season, remote: boolean): StatSet<any> {
     let key = `${season}-${remote}` as const;
     let descriptor = DESCRIPTORS[season];
-    if (!(season in statSetCache)) {
+    if (!(key in statSetCache)) {
         let soloStats = [
             new NonRankStatColumn({
                 color: Color.White,

@@ -161,7 +161,7 @@ export function getMatchStatSet(season: Season, remote: boolean): StatSet<any> {
     let key = `${season}-${remote}` as const;
     let descriptor = DESCRIPTORS[season];
 
-    if (!(season in statSetCache)) {
+    if (!(key in statSetCache)) {
         let scoreStats = descriptor
             .scoreModalColumns()
             .flatMap((c) => [c.getStatColumn(MSStatSide.This), c.getStatColumn(MSStatSide.Opp)]);
