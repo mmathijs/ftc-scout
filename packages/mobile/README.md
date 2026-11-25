@@ -44,12 +44,11 @@ npm run export
 Store builds are made with [EAS](https://docs.expo.dev/build/introduction/). Run these in `packages/mobile`:
 
 ```bash
-npx eas-cli@latest build --profile preview --platform android
-npx eas-cli@latest build --profile production --platform all
-npx eas-cli@latest submit --platform all
+npx expo prebuild --platform android
+cd android && ./gradlew :app:bundleRelease
 ```
 
-`preview` gives an APK to install directly. The app ids are `nl.mmathijs.ftcscout` (`app.config.ts`).
+The app id is `nl.mmathijs.ftcscout` (`app.config.ts`).
 
 ## Over-the-air updates
 

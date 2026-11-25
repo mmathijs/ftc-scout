@@ -37,6 +37,9 @@ const config: ExpoConfig = {
     },
     android: {
         package: "nl.mmathijs.ftcscout",
+        versionCode: process.env.ANDROID_VERSION_CODE
+            ? Number(process.env.ANDROID_VERSION_CODE)
+            : undefined,
         adaptiveIcon: {
             backgroundColor: THEME,
             foregroundImage: "./assets/images/android-icon-foreground.png",
@@ -51,6 +54,7 @@ const config: ExpoConfig = {
         "expo-router",
         "expo-sqlite",
         "expo-font",
+        "./plugins/with-release-signing",
         [
             "expo-splash-screen",
             {
