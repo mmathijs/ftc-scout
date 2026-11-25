@@ -42,3 +42,9 @@ yarn-error.*
 
 # Generated from the API schema and the website's queries (npm run gen)
 src/api/generated/
+
+# xprem code signing: the certificate is public and committed (an exception to *.pem above).
+# The private key never leaves the server.
+!certs/certificate.pem
+keys/
+*private-key.pem
