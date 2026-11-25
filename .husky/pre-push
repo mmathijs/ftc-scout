@@ -1,0 +1,55 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Catches what the Mobile App workflow would refuse to publish as an update: a native change to the
+# app without a runtimeVersion bump (see packages/mobile/scripts/check-update.sh).
+# - A push to dev with such a change is stopped.
+# - Other branches get a warning, measured from where they branch off origin/dev.
+# - A runtimeVersion bump gets a reminder to make a store build.
+# Skip it with `git push --no-verify`.
+
+check="$(git rev-parse --show-toplevel)/packages/mobile/scripts/check-update.sh"
+[ -f "$check" ] || exit 0
+
+zero=0000000000000000000000000000000000000000
+out=$(mktemp)
+trap 'rm -f "$out"' EXIT
+status=0
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+    # Deleting a branch.
+    [ "$local_sha" = "$zero" ] && continue
+
+    if [ "$remote_ref" = "refs/heads/dev" ] && [ "$remote_sha" != "$zero" ]; then
+        base=$remote_sha
+    else
+        base=$(git merge-base origin/dev "$local_sha" 2>/dev/null) || continue
+    fi
+
+    code=0
+    bash "$check" "$base" "$local_sha" >"$out" 2>&1 || code=$?
+    case $code in
+        0 | 10) ;;
+        11)
+            echo "pre-push (${local_ref#refs/heads/}):"
+            sed 's/^/  /' "$out"
+            ;;
+        1)
+            if [ "$remote_ref" = "refs/heads/dev" ]; then
+                echo "pre-push: not pushing to dev, the Mobile App workflow would stop on this."
+                sed 's/^/  /' "$out"
+                echo "  To push anyway: git push --no-verify"
+                status=1
+            else
+                echo "pre-push warning (${local_ref#refs/heads/}): once this is on dev, the Mobile App"
+                echo "workflow won't publish it as an update."
+                sed 's/^/  /' "$out"
+            fi
+            ;;
+        *)
+            # The remote has commits we don't have, so the push fails anyway.
+            ;;
+    esac
+done
+
+exit $status
