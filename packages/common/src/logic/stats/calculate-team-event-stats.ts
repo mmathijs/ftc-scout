@@ -222,10 +222,8 @@ function calculateOprs(
         return;
     }
 
-    let dataPoints = {} as Record<string, OprData[]>;
+    let columns = descriptor.tepColumns().filter((c) => !c.isIndividual);
     for (let c of descriptor.tepColumns()) {
-        dataPoints[c.apiName] = [];
-
         if (c.isIndividual) {
             for (let [team, data] of Object.entries(teps)) {
                 teps[+team].opr[c.apiName] = data.avg[c.apiName];
@@ -233,20 +231,23 @@ function calculateOprs(
         }
     }
 
+    let dataPoints: OprData[] = [];
     for (let m of matches) {
         for (let a of [Alliance.Red, Alliance.Blue]) {
             let [team1, team2] = m.teams.filter((t) => t.alliance == a).map((t) => t.teamNumber);
             let s = a == Alliance.Red ? m.scores!.red : m.scores!.blue;
-            for (let c of descriptor.tepColumns()) {
-                if (c.isIndividual) continue;
-                dataPoints[c.apiName].push({ team1, team2, result: c.make(s, Station.One) });
-            }
+            let results: Record<string, number> = {};
+            for (let c of columns) results[c.apiName] = c.make(s, Station.One);
+            dataPoints.push({ team1, team2, results });
         }
     }
 
-    for (let [name, data] of Object.entries(dataPoints)) {
-        let oprs = calculateOpr(data);
-        for (let [team, opr] of Object.entries(oprs)) {
+    let oprs = calculateOpr(
+        dataPoints,
+        columns.map((c) => c.apiName)
+    );
+    for (let [name, byTeam] of Object.entries(oprs)) {
+        for (let [team, opr] of Object.entries(byTeam)) {
             teps[+team].opr[name] = opr;
         }
     }
