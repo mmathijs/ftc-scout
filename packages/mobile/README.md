@@ -50,3 +50,7 @@ npx eas-cli@latest submit --platform all
 ```
 
 `preview` gives an APK to install directly. The app ids are `nl.mmathijs.ftcscout` (`app.config.ts`).
+
+## Over-the-air updates
+
+Expo OTA updates are set up on `ota.mmathijs.nl` and pulled from `ota-cdn.mmathijs.nl` (Cloudflare R2)

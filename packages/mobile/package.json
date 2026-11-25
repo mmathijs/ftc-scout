@@ -5,8 +5,8 @@
     "main": "expo-router/entry",
     "scripts": {
         "start": "expo start",
-        "android": "expo start --android",
-        "ios": "expo start --ios",
+        "android": "expo run:android",
+        "ios": "expo run:ios",
         "web": "expo start --web",
         "postinstall": "npm run gen",
         "gen": "graphql-codegen --config codegen.ts",
@@ -32,6 +32,7 @@
         "expo-sqlite": "~58.0.18",
         "expo-status-bar": "~58.0.5",
         "expo-system-ui": "~58.0.7",
+        "expo-updates": "~58.0.22",
         "expo-web-browser": "~58.1.0",
         "graphql-ws": "^6.4.1",
         "ml-matrix": "^6.15.1",
