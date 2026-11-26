@@ -8,6 +8,7 @@ import { families, font } from "@/theme/tokens";
 const TABS: { name: string; title: string; icon: IconName }[] = [
     { name: "index", title: "Home", icon: "house" },
     { name: "events", title: "Events", icon: "calendar-days" },
+    { name: "teams", title: "Teams", icon: "hashtag" },
     { name: "favorites", title: "Favorites", icon: "star" },
 ];
 
