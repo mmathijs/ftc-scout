@@ -10,6 +10,7 @@ import {
     calculateOprs,
     calculateRp,
     calculateTiebreakers,
+    calculateTiebreakersFromScores,
     calcLosingScoreTb,
     determineWinner,
     hasAllianceScores,
@@ -84,7 +85,10 @@ function calculateRemoteMatchesPlayed(matches: FrontendMatch[], teps: Record<num
 function calculateRanks(teps: Record<number, Tep>, matches: FrontendMatch[], descriptor: any) {
     for (let stats of Object.values(teps)) {
         if (!stats.hasStats) continue;
-        stats.rp = calculateRp(stats, descriptor);
+        stats.rp =
+            descriptor.rankings.rp == "TotalPoints"
+                ? stats.tot.totalPoints ?? 0
+                : calculateRp(stats, descriptor);
     }
 
     for (let stats of Object.values(teps)) {
@@ -98,7 +102,10 @@ function calculateRanks(teps: Record<number, Tep>, matches: FrontendMatch[], des
             stats.tb1 = denom == 0 ? 0 : sum / denom;
             stats.tb2 = 0;
         } else {
-            let { tb1, tb2 } = calculateTiebreakers(stats, descriptor);
+            let { tb1, tb2 } =
+                descriptor.rankings.tb == "AutoEndgameTot"
+                    ? calculateTiebreakersFromScores(descriptor, stats.tot)
+                    : calculateTiebreakers(stats, descriptor);
             stats.tb1 = tb1;
             stats.tb2 = tb2;
         }
