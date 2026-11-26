@@ -65,6 +65,7 @@ export function SettingsScreen() {
                 <Card style={{ padding: space.sm }}>
                     <NavItem icon="house" label="Home" onPress={() => go("/")} />
                     <NavItem icon="calendar-days" label="Events" onPress={() => go("/events")} />
+                    <NavItem icon="hashtag" label="Teams" onPress={() => go("/teams")} />
                     <NavItem icon="star" label="Favorites" onPress={() => go("/favorites")} />
                     <View style={{ height: 1, backgroundColor: c.sep, marginVertical: space.sm }} />
                     <NavItem
