@@ -1,3 +1,4 @@
+import { onlineManager } from "@tanstack/react-query";
 import { apiUrl } from "./config";
 import type { Doc } from "./generated/documents";
 
@@ -99,6 +100,8 @@ function exchange(url: string, init: RequestInit, opts: Options): Promise<Answer
     let f = opts.fetch ?? fetch;
     return timed(opts.timeoutMs ?? TIMEOUT_MS, opts.signal, async (signal) => {
         let res = await f(url, { ...init, signal });
+        // Any answer means the phone is online, whatever its network state says.
+        onlineManager.setOnline(true);
         let body = {};
         if (res.status != 429) {
             let text = await res.text();
