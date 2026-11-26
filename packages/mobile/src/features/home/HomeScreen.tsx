@@ -16,6 +16,7 @@ import { locationString, prettyPrintDateRange } from "@/format";
 import { openEvent, openTeam } from "@/nav";
 import { favorites } from "@/store/favorites";
 import { useTheme } from "@/theme/ThemeProvider";
+import { useRefreshWithUpdate } from "@/updates";
 import { radius, space, TAP } from "@/theme/tokens";
 
 function InfoBox({
@@ -106,10 +107,11 @@ export function HomeScreen() {
     let favs = favorites.useValue();
     let [mode, setMode] = useState<RecordMode>("wo-penalties");
     let [open, setOpen] = useState<MatchData | null>(null);
+    let refetch = useRefreshWithUpdate(query.refetch);
 
     return (
         <>
-            <ScrollScreen query={query} what="the home page">
+            <ScrollScreen query={query} what="the home page" refetch={refetch}>
                 {(data) => {
                     let record =
                         mode == "wo-penalties"

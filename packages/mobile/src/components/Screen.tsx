@@ -60,14 +60,16 @@ export function QueryGate<D>({
 export function ScrollScreen<D>({
     query,
     what,
+    refetch = query.refetch,
     children,
 }: {
     query: UseQueryResult<D>;
     what: string;
+    refetch?: () => Promise<unknown>;
     children: (data: D) => ReactNode;
 }) {
     let c = useTheme();
-    let refresh = useRefresh(query.refetch);
+    let refresh = useRefresh(refetch);
     return (
         <Page>
             <ScrollView

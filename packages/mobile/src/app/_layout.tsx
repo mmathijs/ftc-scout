@@ -20,9 +20,11 @@ import { isDeep, setNavigation, teamTitle } from "@/nav";
 import { settings } from "@/store/settings";
 import { ThemeProvider, useTheme } from "@/theme/ThemeProvider";
 import { families, font } from "@/theme/tokens";
+import { wireUpdates } from "@/updates";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 wireQueryClient();
+wireUpdates();
 
 // A page opened from a link (ftcscout://team/3954) gets the tabs under it to go back to.
 export const unstable_settings = { anchor: "(tabs)" };
