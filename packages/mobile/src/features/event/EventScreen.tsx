@@ -203,6 +203,11 @@ export function EventScreen({
                     />
                 ) : (
                     <>
+                        <SavedNote
+                            updatedAt={0}
+                            failed={false}
+                            fetching={full.isFetching || lean.isFetching}
+                        />
                         <Skeleton rows={3} />
                         <Skeleton rows={10} title={false} />
                     </>
@@ -230,6 +235,7 @@ export function EventScreen({
             <SavedNote
                 updatedAt={full.dataUpdatedAt || lean.dataUpdatedAt}
                 failed={full.isError && !!full.data}
+                fetching={full.isFetching || lean.isFetching}
             />
             <FlashList
                 data={items}

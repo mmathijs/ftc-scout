@@ -1,16 +1,16 @@
 import { onlineManager } from "@tanstack/react-query";
 import { useLocalSearchParams, useRoute, type ErrorBoundaryProps } from "expo-router";
-import { useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { View } from "react-native";
 import { ApiError, isRefusal } from "@/api/client";
 import { forgetSaved } from "@/api/hooks";
 import { queryClient } from "@/api/queryClient";
-import { savedAt } from "@/format";
 import { useTheme } from "@/theme/ThemeProvider";
 import { space } from "@/theme/tokens";
 import { Button } from "./Button";
 import { Card } from "./Card";
 import { Icon, type IconName } from "./Icon";
+import { savedNote, SLOW_MS, type Note } from "./savedNote";
 import { Txt } from "./Txt";
 
 // The same functions on every render, so useSyncExternalStore doesn't resubscribe each time.
@@ -130,11 +130,39 @@ export function EmptyView({
     );
 }
 
-export function SavedNote({ updatedAt, failed }: { updatedAt: number; failed: boolean }) {
+export function useSlow(busy: boolean, ms = SLOW_MS): boolean {
+    let [slow, setSlow] = useState(false);
+    useEffect(() => {
+        if (!busy) return;
+        let t = setTimeout(() => setSlow(true), ms);
+        return () => {
+            clearTimeout(t);
+            setSlow(false);
+        };
+    }, [busy, ms]);
+    return busy && slow;
+}
+
+const NOTE_ICONS: Record<Note["kind"], IconName> = {
+    offline: "plane-slash",
+    failed: "triangle-exclamation",
+    slow: "hourglass-half",
+};
+
+export function SavedNote({
+    updatedAt,
+    failed,
+    fetching = false,
+}: {
+    updatedAt: number;
+    failed: boolean;
+    fetching?: boolean;
+}) {
     let c = useTheme();
     let online = useOnline();
-    if (online && !failed) return null;
-    if (!updatedAt) return null;
+    let slow = useSlow(fetching);
+    let note = savedNote({ online, failed, slow, updatedAt });
+    if (!note) return null;
     return (
         <View
             accessibilityRole="alert"
@@ -147,13 +175,9 @@ export function SavedNote({ updatedAt, failed }: { updatedAt: number; failed: bo
                 paddingVertical: space.sm,
             }}
         >
-            <Icon
-                name={online ? "triangle-exclamation" : "plane-slash"}
-                size={13}
-                color={c.onAlert}
-            />
+            <Icon name={NOTE_ICONS[note.kind]} size={13} color={c.onAlert} />
             <Txt size="sm" weight="semibold" color={c.onAlert} style={{ flex: 1 }}>
-                {online ? "Couldn't refresh" : "Offline"} · saved {savedAt(updatedAt)}
+                {note.text}
             </Txt>
         </View>
     );

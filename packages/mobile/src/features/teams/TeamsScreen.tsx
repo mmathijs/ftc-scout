@@ -90,7 +90,11 @@ export function TeamsScreen() {
 
     return (
         <Page>
-            <SavedNote updatedAt={query.dataUpdatedAt} failed={query.isError} />
+            <SavedNote
+                updatedAt={query.dataUpdatedAt}
+                failed={query.isError}
+                fetching={query.isFetching}
+            />
             <FlashList
                 data={items}
                 keyExtractor={(i) => i.key}

@@ -142,7 +142,11 @@ export function EventsScreen() {
 
     return (
         <Page>
-            <SavedNote updatedAt={query.dataUpdatedAt} failed={query.isError} />
+            <SavedNote
+                updatedAt={query.dataUpdatedAt}
+                failed={query.isError}
+                fetching={query.isFetching}
+            />
             <FlashList
                 ref={list}
                 data={items}

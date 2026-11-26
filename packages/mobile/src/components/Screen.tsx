@@ -39,6 +39,7 @@ export function QueryGate<D>({
             return <ErrorView error={query.error} onRetry={() => query.refetch()} what={what} />;
         return (
             <>
+                <SavedNote updatedAt={0} failed={false} fetching={query.isFetching} />
                 <Skeleton rows={4} />
                 <Skeleton rows={10} title={false} />
             </>
@@ -46,7 +47,11 @@ export function QueryGate<D>({
     }
     return (
         <>
-            <SavedNote updatedAt={query.dataUpdatedAt} failed={query.isError} />
+            <SavedNote
+                updatedAt={query.dataUpdatedAt}
+                failed={query.isError}
+                fetching={query.isFetching}
+            />
             {children(query.data)}
         </>
     );

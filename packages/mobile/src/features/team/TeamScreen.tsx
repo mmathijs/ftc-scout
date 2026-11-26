@@ -411,6 +411,7 @@ export function TeamScreen({
                     />
                 ) : (
                     <>
+                        <SavedNote updatedAt={0} failed={false} fetching={query.isFetching} />
                         <Skeleton rows={4} />
                         <Skeleton rows={8} title={false} />
                     </>
@@ -430,7 +431,11 @@ export function TeamScreen({
     return (
         <Page>
             {header}
-            <SavedNote updatedAt={query.dataUpdatedAt} failed={query.isError} />
+            <SavedNote
+                updatedAt={query.dataUpdatedAt}
+                failed={query.isError}
+                fetching={query.isFetching}
+            />
             <FlashList
                 data={items}
                 keyExtractor={(i) => i.key}

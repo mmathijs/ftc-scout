@@ -1,3 +1,4 @@
+import { onlineManager } from "@tanstack/react-query";
 import { ApiError, isRefusal, RefusalError, request, TimeoutError } from "./client";
 import type { Doc } from "./generated/documents";
 
@@ -207,6 +208,26 @@ describe("request", () => {
         let pending = request(doc, { season: 2025 }, { fetch: f as any, signal: ctl.signal });
         ctl.abort();
         await expect(pending).rejects.toThrow("Aborted");
+    });
+});
+
+describe("being online", () => {
+    afterEach(() => onlineManager.setOnline(true));
+
+    it("counts any answer as being online, whatever the phone said", async () => {
+        onlineManager.setOnline(false);
+        let f = jest.fn(async () => res(500, "<html>"));
+        await expect(request(doc, { season: 2025 }, { fetch: f as any })).rejects.toThrow();
+        expect(onlineManager.isOnline()).toBe(true);
+    });
+
+    it("doesn't count a request that got no answer", async () => {
+        onlineManager.setOnline(false);
+        let f = jest.fn(async () => {
+            throw new TypeError("Network request failed");
+        });
+        await expect(request(doc, { season: 2025 }, { fetch: f as any })).rejects.toThrow();
+        expect(onlineManager.isOnline()).toBe(false);
     });
 });
 

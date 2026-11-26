@@ -160,7 +160,11 @@ export function SearchScreen() {
                     }}
                 />
             </View>
-            <SavedNote updatedAt={query.dataUpdatedAt} failed={query.isError} />
+            <SavedNote
+                updatedAt={query.dataUpdatedAt}
+                failed={query.isError}
+                fetching={query.isFetching}
+            />
             {query.data === undefined ? (
                 query.isError ? (
                     <ErrorView
