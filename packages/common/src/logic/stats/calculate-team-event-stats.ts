@@ -24,7 +24,7 @@ export function calculateTeamEventStats(
     matches: FrontendMatch[],
     teams: number[]
 ): Tep[] {
-    matches = filterQualsMatches(matches);
+    matches = filterQualsMatches(matches, isRemote);
 
     let descriptor = DESCRIPTORS[season];
     let emptyGroup = createEmptyGroup(descriptor);
