@@ -32,11 +32,11 @@ const config: ExpoConfig = {
     scheme: "ftcscout",
     userInterfaceStyle: "automatic",
     ios: {
-        bundleIdentifier: "nl.mmathijs.ftcscout",
+        bundleIdentifier: "nl.mmathijs.ftcscout.beta",
         supportsTablet: true,
     },
     android: {
-        package: "nl.mmathijs.ftcscout",
+        package: "nl.mmathijs.ftcscout.beta",
         versionCode: process.env.ANDROID_VERSION_CODE
             ? Number(process.env.ANDROID_VERSION_CODE)
             : undefined,

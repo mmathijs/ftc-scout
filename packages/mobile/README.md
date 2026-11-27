@@ -48,7 +48,7 @@ npx expo prebuild --platform android
 cd android && ./gradlew :app:bundleRelease
 ```
 
-The app id is `nl.mmathijs.ftcscout` (`app.config.ts`).
+The app id is `nl.mmathijs.ftcscout.beta` (`app.config.ts`).
 
 ## Over-the-air updates
 
